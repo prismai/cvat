@@ -19,6 +19,8 @@ import django_rq
 from django.conf import settings
 from django.db import transaction
 
+from cvat.apps.engine.plugins import plugin_decorator
+
 from . import models
 from .task import get_frame_path, get_image_meta_cache
 from .log import slogger
@@ -70,6 +72,8 @@ def get(jid):
 
     return annotation.to_client()
 
+
+@plugin_decorator
 @transaction.atomic
 def save_job(jid, data, delete_old_data=False):
     """
