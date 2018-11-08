@@ -13,3 +13,10 @@ docker-compose.override.yml
 __pycache__
 *.pyc
 ._*
+
+# Ignore direnv
+.envrc
+.direnv
+
+# Ignore PyCharm files
+.idea
