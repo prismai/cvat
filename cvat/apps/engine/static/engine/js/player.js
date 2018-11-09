@@ -10,7 +10,7 @@
 class FrameProvider extends Listener {
     constructor(stop, tid) {
         super('onFrameLoad', () => this._loaded);
-        this._MAX_LOAD = 500;
+        this._MAX_LOAD = 1050;
 
         this._stack = [];
         this._loadInterval = null;
