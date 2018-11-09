@@ -132,10 +132,10 @@ class Config {
                 description: "focus to 'go to frame' element"
             },
 
-            set_key_frame: {
+            toggle_key_frame: {
                 value: "a",
                 view_value: "A",
-                description: "Set current frame as key frame"
+                description: "Toggle key frame"
             },
 
             next_frame: {

@@ -420,10 +420,11 @@ class PlayerController {
                     let prevKeyFrame = active.prevKeyFrame();
                     if (prevKeyFrame != null) {
                         this._model.shift(prevKeyFrame, true);
+
                     }
                 }
-            }.bind(this));
 
+            }.bind(this));
 
             let nextFilterFrameHandler = Logger.shortkeyLogDecorator(function(e) {
                 let frame = this._find(1);
@@ -460,7 +461,7 @@ class PlayerController {
                 return false;
             }.bind(this));
 
-            let setKeyActiveFrameHandler = Logger.shortkeyLogDecorator(function (e) {
+            let toggleKeyFrameHandler = Logger.shortkeyLogDecorator(function (e) {
                 let active = activeTrack();
                 if (active !== null) {
                     active.switchKeyFrame(window.cvat.player.frames.current);
@@ -479,7 +480,7 @@ class PlayerController {
             Mousetrap.bind(shortkeys["forward_frame"].value, forwardHandler, 'keydown');
             Mousetrap.bind(shortkeys["backward_frame"].value, backwardHandler, 'keydown');
             Mousetrap.bind(shortkeys["play_pause"].value, playPauseHandler, 'keydown');
-            Mousetrap.bind(shortkeys["set_key_frame"].value, setKeyActiveFrameHandler, 'keydown');
+            Mousetrap.bind(shortkeys["toggle_key_frame"].value, toggleKeyFrameHandler, 'keydown');
         }
     }
 
