@@ -420,10 +420,11 @@ class PlayerController {
                     let prevKeyFrame = active.prevKeyFrame();
                     if (prevKeyFrame != null) {
                         this._model.shift(prevKeyFrame, true);
+
                     }
                 }
-            }.bind(this));
 
+            }.bind(this));
 
             let nextFilterFrameHandler = Logger.shortkeyLogDecorator(function(e) {
                 let frame = this._find(1);
@@ -460,6 +461,14 @@ class PlayerController {
                 return false;
             }.bind(this));
 
+            let toggleKeyFrameHandler = Logger.shortkeyLogDecorator(function (e) {
+                let active = activeTrack();
+                if (active !== null) {
+                    active.switchKeyFrame(window.cvat.player.frames.current);
+                }
+                e.preventDefault()
+            }.bind(this));
+
             let shortkeys = window.cvat.config.shortkeys;
 
             Mousetrap.bind(shortkeys["next_frame"].value, nextHandler, 'keydown');
@@ -471,6 +480,7 @@ class PlayerController {
             Mousetrap.bind(shortkeys["forward_frame"].value, forwardHandler, 'keydown');
             Mousetrap.bind(shortkeys["backward_frame"].value, backwardHandler, 'keydown');
             Mousetrap.bind(shortkeys["play_pause"].value, playPauseHandler, 'keydown');
+            Mousetrap.bind(shortkeys["toggle_key_frame"].value, toggleKeyFrameHandler, 'keydown');
         }
     }
 
