@@ -378,6 +378,7 @@ class PlayerModel extends Listener {
 class PlayerController {
     constructor(playerModel, activeTrack, find, playerOffset) {
         this._model = playerModel;
+        this._activeTrack = activeTrack;
         this._find = find;
         this._rewinding = false;
         this._moving = false;
@@ -576,6 +577,13 @@ class PlayerController {
         }
     }
 
+    activateShape(shape) {
+        if (shape) {
+            shape.active = true;
+        }
+    }
+
+
     changeStep(e) {
         let value = Math.clamp(+e.target.value, +e.target.min, +e.target.max);
         e.target.value = value;
@@ -608,12 +616,16 @@ class PlayerController {
     }
 
     next() {
+        let activeShape = this._activeTrack();
         this._model.shift(1);
+        this.activateShape(activeShape);
         this._model.pause();
     }
 
     previous() {
+        let activeShape = this._activeTrack();
         this._model.shift(-1);
+        this.activateShape(activeShape);
         this._model.pause();
     }
 
