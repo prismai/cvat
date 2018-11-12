@@ -54,6 +54,12 @@ The step is necessary only to run tf_annotation app. If you don't have a Nvidia 
 sudo pip install docker-compose
 ```
 
+### Create environment file from template
+
+```bash
+cp env.template .env
+```
+
 ### Build docker images
 
 To build all necessary docker images run `docker-compose build` command. By default, in production mode the tool uses PostgreSQL as database, Redis for caching.

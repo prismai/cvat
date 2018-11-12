@@ -40,6 +40,8 @@ services:
         USER: "django"
         DJANGO_CONFIGURATION: "production"
         WITH_TESTS: "no"
+    env_file:
+      - .env
     environment:
       DJANGO_MODWSGI_EXTRA_ARGS: ""
       DJANGO_LOG_SERVER_URL: ""
