@@ -469,6 +469,14 @@ class PlayerController {
                 e.preventDefault()
             }.bind(this));
 
+            let toggleOutsideHandler = Logger.shortkeyLogDecorator(function (e) {
+                let active = activeTrack();
+                if (active !== null) {
+                    active.switchOutside(window.cvat.player.frames.current)
+                }
+                e.preventDefault()
+            }.bind(this));
+
             let shortkeys = window.cvat.config.shortkeys;
 
             Mousetrap.bind(shortkeys["next_frame"].value, nextHandler, 'keydown');
@@ -481,6 +489,7 @@ class PlayerController {
             Mousetrap.bind(shortkeys["backward_frame"].value, backwardHandler, 'keydown');
             Mousetrap.bind(shortkeys["play_pause"].value, playPauseHandler, 'keydown');
             Mousetrap.bind(shortkeys["toggle_key_frame"].value, toggleKeyFrameHandler, 'keydown');
+            Mousetrap.bind(shortkeys["toggle_outside"].value, toggleOutsideHandler, 'keydown');
         }
     }
 
@@ -632,6 +641,8 @@ class PlayerController {
         this._model.shift(frame, true);
     }
 }
+
+
 
 
 class PlayerView {
