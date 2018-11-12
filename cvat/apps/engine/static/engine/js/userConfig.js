@@ -138,6 +138,12 @@ class Config {
                 description: "Toggle key frame"
             },
 
+            toggle_outside: {
+                value: "z",
+                view_value: "Z",
+                description: "Toggle outside"
+            },
+
             next_frame: {
                 value: "f",
                 view_value: "F",
