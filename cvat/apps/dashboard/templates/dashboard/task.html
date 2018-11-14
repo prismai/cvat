@@ -27,9 +27,38 @@
         </center>
         <table class="dashboardJobList regular">
             {% for segment in item.segments %}
-                <tr>
-                    <td> <a href="{{segment.url}}"> {{segment.url}} </a> </td>
-                </tr>
+            <tr class="job-block">
+                <form>
+                    <td><input hidden name="jobId" value="{{segment.id}}"></td>
+                    <td><a href="{{segment.url}}">Job #{{segment.id}}</a></td>
+                    <td>
+                        <select class="form-field" name="annotator">
+                            {% for annotator in available_annotators %}
+                            {% if not segment.annotator %}
+                            <option disabled selected value></option>
+                            {% endif %}
+                            {% if segment.annotator.id == annotator.id %}
+                            <option selected value="{{annotator.id}}">{{annotator.name}}</option>
+                            {% else %}
+                            <option value="{{annotator.id}}">{{annotator.name}}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input
+                            class="form-field"
+                            type="date"
+                            name="estimated_completion_date"
+                            value="{{segment.estimated_completion_date|date:'Y-m-d'}}"></td>
+                    <td><input
+                                class="form-field"
+                                type="number"
+                                value="{{segment.progress|floatformat:'0'}}"
+                                min="1" max="100" step="1"
+                                name="progress"
+                                placeholder="job progress"></td>
+                </form>
+            </tr>
             {% endfor %}
         </table>
     </div>

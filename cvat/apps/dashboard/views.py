@@ -2,18 +2,23 @@
 # Copyright (C) 2018 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
-
+from django.contrib.auth import get_user_model
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.shortcuts import render
 from django.conf import settings
 from django.contrib.auth.decorators import permission_required
 from cvat.apps.authentication.decorators import login_required
+from cvat.apps.dashboard.forms import UpdateTaskJobForm
 
-from cvat.apps.engine.models import Task as TaskModel
+from cvat.apps.engine.models import Task as TaskModel, Job
 from cvat.settings.base import JS_3RDPARTY
 
 import os
+
+
+User = get_user_model()
+
 
 def ScanNode(directory):
     if '..' in directory.split(os.path.sep):
@@ -77,9 +82,15 @@ def DetailTaskInfo(request, task, dst_dict):
 
     for segment in task.segment_set.all():
         for job in segment.job_set.all():
+            annotator = None
+            if job.annotator:
+                annotator = {'id': job.annotator.id, 'name': job.annotator.get_full_name()}
             segment_url = "{0}://{1}/?id={2}".format(scheme, host, job.id)
             dst_dict["segments"].append({
                 'id': job.id,
+                'annotator': annotator,
+                'estimated_completion_date': job.estimated_completion_date,
+                'progress': job.progress,
                 'start': segment.start_frame,
                 'stop': segment.stop_frame,
                 'url': segment_url
@@ -113,6 +124,19 @@ def DashboardView(request):
         'data': data,
         'max_upload_size': settings.LOCAL_LOAD_MAX_FILES_SIZE,
         'max_upload_count': settings.LOCAL_LOAD_MAX_FILES_COUNT,
+        'available_annotators': [{'id': u.id, 'name': u.get_full_name()} for u in User.objects.filter(is_active=True)],
         'share_path': os.getenv('CVAT_SHARE_URL', default=r'${cvat_root}/share'),
         'js_3rdparty': JS_3RDPARTY.get('dashboard', [])
     })
+
+
+@login_required
+@permission_required('engine.view_task', raise_exception=True)
+def task_job_update_view(request, job_id):
+    job = get_object_or_404(Job.objects.all(), id=job_id)
+    form = UpdateTaskJobForm(data=request.POST or None, instance=job)
+    if form.is_valid():
+        form.save()
+        return HttpResponse('Resource updated successfully', status=204)
+
+    return HttpResponse(form.errors, status=400)
