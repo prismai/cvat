@@ -56,10 +56,33 @@ window.cvat.dashboard.uiCallbacks.push(function(elements) {
             window.cvat.dashboard.taskName = taskName;
             RemoveTaskRequest();
         });
+
+        elem.find('.job-block').each(function (index, jobBlock) {
+            jobBlock = $(jobBlock);
+            const form = jobBlock.find('form');
+            jobBlock.find('.form-field').change(() => onChangeForm(form))
+        });
     });
 });
 
 document.addEventListener("DOMContentLoaded", buildDashboard);
+
+
+function onChangeForm(form) {
+    const serializedForm = serializeForm(form);
+    const jobId = serializedForm.jobId;
+    delete serializedForm.jobId;
+    $.post(`/dashboard/jobs/${jobId}/update/`, serializedForm)
+}
+
+
+function serializeForm(form) {
+    return form.serializeArray()
+        .reduce(function (a, x) {
+            a[x.name] = x.value;
+            return a;
+        }, {})
+}
 
 
 function buildDashboard() {

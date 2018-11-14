@@ -14,6 +14,8 @@ from io import StringIO
 import re
 import os
 
+from cvat.apps.engine.fields import PercentField
+
 
 class Task(models.Model):
     name = models.CharField(max_length=256)
@@ -74,6 +76,8 @@ class Segment(models.Model):
 class Job(models.Model):
     segment = models.ForeignKey(Segment, on_delete=models.CASCADE)
     annotator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    estimated_completion_date = models.DateField(null=True, blank=True)
+    progress = PercentField(default=0)
     # TODO: add sub-issue number for the task
 
 class Label(models.Model):
