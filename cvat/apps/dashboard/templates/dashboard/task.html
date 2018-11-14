@@ -51,12 +51,12 @@
                             name="estimated_completion_date"
                             value="{{segment.estimated_completion_date|date:'Y-m-d'}}"></td>
                     <td><input
-                                class="form-field"
-                                type="number"
-                                value="{{segment.progress|floatformat:'0'}}"
-                                min="1" max="100" step="1"
-                                name="progress"
-                                placeholder="job progress"></td>
+                            class="form-field"
+                            type="number"
+                            value="{{segment.progress}}"
+                            min="1" max="100" step="1"
+                            name="progress"
+                            placeholder="job progress"></td>
                 </form>
             </tr>
             {% endfor %}

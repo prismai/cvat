@@ -2,9 +2,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
-class PercentField(models.FloatField):
+class PercentField(models.IntegerField):
     """
-    Float field that ensures field value is in the range 0-100.
+    Integer field that ensures field value is in the range 0-100.
     """
     default_validators = [
         MinValueValidator(0),
