@@ -1,0 +1,15 @@
+.operator-tile {
+    height: 5vw;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+}
+
+.operator-tile:hover {
+    background-color: #ECECEC;
+    cursor: pointer;
+}
+
+div.selected {
+    background-color: #ECECEC;
+}

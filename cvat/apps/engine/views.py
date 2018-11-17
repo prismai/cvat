@@ -8,6 +8,7 @@ import json
 import logging
 import traceback
 
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.conf import settings
@@ -15,6 +16,7 @@ from django.contrib.auth.decorators import permission_required
 from django.views.decorators.gzip import gzip_page
 from sendfile import sendfile
 
+from cvat.apps.stats.utils import save_job_stats
 from . import annotation, task, models
 from cvat.settings.base import JS_3RDPARTY
 from cvat.apps.authentication.decorators import login_required
@@ -242,6 +244,8 @@ def save_annotation_for_job(request, jid):
         data = json.loads(request.body.decode('utf-8'))
         if 'annotation' in data:
             annotation.save_job(jid, json.loads(data['annotation']))
+            stats = data.get('stats', None)
+            transaction.on_commit(lambda: save_job_stats(jid, request.user.id, stats))
         if 'logs' in data:
             client_log_proxy.push_logs(jid, json.loads(data['logs']))
     except RequestException as e:
