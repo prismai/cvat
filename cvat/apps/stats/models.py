@@ -5,7 +5,7 @@ from model_utils.models import TimeStampedModel
 
 class JobStatsSave(TimeStampedModel):
     job = models.ForeignKey('engine.Job', null=True, on_delete=models.SET_NULL)
-    annotator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    annotator = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='job_saves', on_delete=models.PROTECT)
     annotated_manually = models.IntegerField()  # Annotated objects after last save
     total_annotated_manually = models.IntegerField()  # Total count of manually annotated objects
     total_interpolated = models.IntegerField()  # Total count of interpolated objects

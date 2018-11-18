@@ -11,6 +11,9 @@ User = get_user_model()
 
 
 def save_job_stats(job_id, annotator_id, data):
+    """
+    Service function to create job annotation state log
+    """
     if not data:
         return None
     to_save = {
@@ -23,9 +26,12 @@ def save_job_stats(job_id, annotator_id, data):
         job_id=job_id,
         annotator_id=annotator_id
     ).order_by('-created').first()
+
+    # Calculating manually set objects after last save
     if previous_save:
         to_save['annotated_manually'] = to_save['total_annotated_manually'] - previous_save.total_annotated_manually
     else:
+        # if first time save
         to_save['annotated_manually'] = to_save['total_annotated_manually']
     save = None
     if None not in to_save.values():
@@ -33,43 +39,53 @@ def save_job_stats(job_id, annotator_id, data):
     return save
 
 
-def sum_intervals(date_list: list, start_step=1):
+def sum_intervals(date_list: list, first_interval=15):
+    """
+    Util function to calculate sum of intervals between dates in array
+    with adding extra date to the start of array to minimize losses of time
+    before first save
+    """
+
     if not date_list:
-        return datetime.timedelta(hours=0, minutes=0, seconds=0)
+        return datetime.timedelta()
     date_list.sort()
-    start_date = next(iter(date_list)) - datetime.timedelta(hours=start_step)
+    start_date = next(iter(date_list)) - datetime.timedelta(minutes=first_interval)
     previous_date = start_date
-    total_time = datetime.timedelta(hours=0, minutes=0, seconds=0)
+    total_time = datetime.timedelta()
     for date in date_list:
         total_time += date - previous_date
         previous_date = date
     return total_time
 
 
-def collect_annotators_stats(annotator_id=None):
-    users = User.objects.all()
-    if annotator_id:
-        users = users.filter(id=annotator_id)
+def collect_annotators_stats():
+    """
+    Service function for collecting annotation statistics grouped by users (annotators)
+    and save date
+    """
 
     # Setup default dict grouped by users
-    stats = {user.id: {'name': user.get_full_name(), 'stats': []} for user in users}
+    stats = {user.id: {'name': user.get_full_name(), 'stats': []} for user in User.objects.all()}
 
-    # calculate base stats
-    for user in users:
-        jobs_saves = JobStatsSave.objects.filter(
-            annotator_id=user.id
-        ).annotate(date=Cast('created', models.DateField())).values(
-            'job_id', 'annotated_manually', 'created', 'date').order_by('date')
+    for key, item in stats.items():
+        # get all saves for user with casting datetime field to date field (to group saves by date)
+        jobs_saves = JobStatsSave.objects.filter(annotator_id=key).annotate(
+            date=Cast('created', models.DateField())
+        ).values('job_id', 'annotated_manually', 'created', 'date').order_by('date')
         for date, group in groupby(jobs_saves, lambda x: x['date']):
             group = list(group)
+            # get sum of intervals of dates in array of saves
             spent_time = sum_intervals([i['created'] for i in group])
+            # round to hours
             spent_time = round(spent_time.total_seconds() / 60 / 60)
+            # get sum of manually changed/added boxes for date
             boxes_count = sum([i['annotated_manually'] for i in group])
-            stats[user.id]['stats'].append({
+            item['stats'].append({
                 'date': date,
                 'boxes_count': boxes_count,
                 'hours': spent_time,
-                'ratio': boxes_count / spent_time
+                'ratio': (boxes_count / spent_time) if spent_time else 0
             })
-        stats[user.id]['stats'].sort(key=lambda x: x['date'], reverse=True)
+        # sorting stats by desc date
+        item['stats'].sort(key=lambda x: x['date'], reverse=True)
     return stats

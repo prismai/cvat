@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import permission_required
 from django.views.decorators.gzip import gzip_page
 from sendfile import sendfile
 
-from cvat.apps.stats.utils import save_job_stats
+from cvat.apps.stats.services import save_job_stats
 from . import annotation, task, models
 from cvat.settings.base import JS_3RDPARTY
 from cvat.apps.authentication.decorators import login_required
