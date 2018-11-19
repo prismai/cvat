@@ -411,6 +411,7 @@ class PlayerController {
                     let nextKeyFrame = active.nextKeyFrame();
                     if (nextKeyFrame != null) {
                         this._model.shift(nextKeyFrame, true);
+                        this.activateShape(active)
                     }
                 }
             }.bind(this));
@@ -421,6 +422,7 @@ class PlayerController {
                     let prevKeyFrame = active.prevKeyFrame();
                     if (prevKeyFrame != null) {
                         this._model.shift(prevKeyFrame, true);
+                        this.activateShape(active)
 
                     }
                 }
@@ -583,7 +585,6 @@ class PlayerController {
         }
     }
 
-
     changeStep(e) {
         let value = Math.clamp(+e.target.value, +e.target.min, +e.target.max);
         e.target.value = value;
@@ -640,12 +641,16 @@ class PlayerController {
     }
 
     forward() {
+        let activeShape = this._activeTrack();
         this._model.shift(this._model.multipleStep);
+        this.activateShape(activeShape);
         this._model.pause();
     }
 
     backward() {
+        let activeShape = this._activeTrack();
         this._model.shift(-this._model.multipleStep);
+        this.activateShape(activeShape);
         this._model.pause();
     }
 
