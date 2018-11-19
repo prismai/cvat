@@ -293,6 +293,12 @@ class Config {
                 view_value: "Ctrl + Shift + Z / Ctrl + Y",
                 description: "redo"
             },
+
+            activateMovingMode: {
+                value: 'shift',
+                view_value: 'Shift',
+                description: 'activate moving mode'
+            }
         };
 
         if (window.cvat && window.cvat.job && window.cvat.job.z_order) {
