@@ -813,6 +813,7 @@ class ShapeCollectionModel extends Listener {
 class ShapeCollectionController {
     constructor(collectionModel) {
         this._model = collectionModel;
+        this._movingModeActive = false;
         this._filterController = new FilterController(collectionModel.filter);
         setupCollectionShortcuts.call(this);
 
@@ -885,6 +886,14 @@ class ShapeCollectionController {
                 }
             }.bind(this));
 
+            let movingModeActivate = Logger.shortkeyLogDecorator(function () {
+                this._movingModeActive = true;
+            }.bind(this));
+
+            let movingModeDeactivate = Logger.shortkeyLogDecorator(function () {
+                this._movingModeActive = false;
+            }.bind(this));
+
             let shortkeys = window.cvat.config.shortkeys;
             Mousetrap.bind(shortkeys["switch_lock_property"].value, switchLockHandler.bind(this), 'keydown');
             Mousetrap.bind(shortkeys["switch_all_lock_property"].value, switchAllLockHandler.bind(this), 'keydown');
@@ -895,6 +904,8 @@ class ShapeCollectionController {
             Mousetrap.bind(shortkeys["change_shape_label"].value, switchLabelHandler.bind(this), 'keydown');
             Mousetrap.bind(shortkeys["delete_shape"].value, removeActiveHandler.bind(this), 'keydown');
             Mousetrap.bind(shortkeys["change_shape_color"].value, changeShapeColorHandler.bind(this), 'keydown');
+            Mousetrap.bind(shortkeys["activateMovingMode"].value, movingModeActivate.bind(this), 'keydown');
+            Mousetrap.bind(shortkeys["activateMovingMode"].value, movingModeDeactivate.bind(this), 'keyup');
 
             if (window.cvat.job.z_order) {
                 Mousetrap.bind(shortkeys["inc_z"].value, incZHandler.bind(this), 'keydown');
@@ -1088,7 +1099,9 @@ class ShapeCollectionView {
 
         this._frameContent.on('mousedown', (e) => {
             if (e.target === this._frameContent.node) {
-                this._controller.resetActive();
+                if (!this._controller._movingModeActive) {
+                    this._controller.resetActive();
+                }
             }
         });
 
