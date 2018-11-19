@@ -20,3 +20,6 @@ __pycache__
 
 # Ignore PyCharm files
 .idea
+
+# Local settings
+/cvat/settings/local.py

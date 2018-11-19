@@ -604,6 +604,7 @@ function saveAnnotation(shapeCollectionModel, job) {
 
     const data = {
         annotation: exportedData,
+        stats: {manually: totalStat.manually, interpolated: totalStat.interpolated},
         logs: JSON.stringify(annotationLogs.export()),
     };
 
