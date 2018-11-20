@@ -5,21 +5,22 @@
     CVAT Operators Stats
 {% endblock %}
 
+{% block head_css_3rdparty %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'stats/css/3rdparty/bootstrap.min.css' %}">
+{% endblock %}
+
 {% block head_css %}
     {{ block.super }}
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
-          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link rel="stylesheet" type="text/css" href="{% static 'stats/stylesheet.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'stats/css/stylesheet.css' %}">
 {% endblock %}
 
 {% block head_js_3rdparty %}
     {{ block.super }}
+    <script type="application/javascript" {% static 'stats/js/3rdparty/bootstrap.min.js' %}></script>
     {% for js_file in js_3rdparty %}
         <script type="text/javascript" src="{% static js_file %}" defer></script>
     {% endfor %}
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
-                integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
-                crossorigin="anonymous"></script>
 {% endblock %}
 
 {% block head_js_cvat %}
