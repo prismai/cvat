@@ -185,10 +185,10 @@ def get_job(request, jid):
 @login_required
 @permission_required(perm=['engine.view_task', 'engine.view_annotation'], raise_exception=True)
 def dump_annotation(request, tid):
-    convert_to = request.GET.get('convert_to', None)
+    format_ = request.GET.get('format', None)
     try:
         task_logger[tid].info("dump annotation request")
-        annotation.dump(tid, annotation.FORMAT_XML, request.scheme, request.get_host(), convert_to)
+        annotation.dump(tid, format_, request.scheme, request.get_host())
     except Exception as e:
         task_logger[tid].error("cannot dump annotation", exc_info=True)
         return HttpResponseBadRequest(str(e))
@@ -212,11 +212,12 @@ def check_annotation(request, tid):
 @gzip_page
 @permission_required(perm=['engine.view_task', 'engine.view_annotation'], raise_exception=True)
 def download_annotation(request, tid):
+    format_ = request.GET.get('format', settings.XML_DUMP_FORMAT)
     try:
         task_logger[tid].info("get dumped annotation")
         db_task = models.Task.objects.get(pk=tid)
         file_path = db_task.get_dump_path()
-        file_ext = mimetypes.guess_extension(magic.from_file(file_path, mime=True))
+        file_ext = settings.DUMP_FORMATS_MAP[format_]
         response = sendfile(request, file_path, attachment=True,
                             attachment_filename='{}_{}{}'.format(db_task.id, db_task.name, file_ext))
     except Exception as e:

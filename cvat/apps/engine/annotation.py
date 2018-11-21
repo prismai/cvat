@@ -8,53 +8,41 @@ import copy
 import numpy as np
 
 from django.utils import timezone
-from collections import OrderedDict
 from scipy.optimize import linear_sum_assignment
 from collections import OrderedDict
 from distutils.util import strtobool
-from xml.dom import minidom
 from xml.sax.saxutils import XMLGenerator
 from abc import ABCMeta, abstractmethod
-from PIL import Image
 
 import django_rq
 from django.conf import settings
 from django.db import transaction
 
-from cvat.apps.engine.services import dump_to_vc_json
+from cvat.apps.engine.services import convert_dump_to_vc_json
 from . import models
 from .task import get_frame_path, get_image_meta_cache
 from .logging import task_logger, job_logger
 
 ############################# Low Level server API
 
-FORMAT_XML = 1
-FORMAT_JSON = 2
 
-VIRTUAL_CAMERA_JSON_FORMAT = 'vc_json'
-
-
-def get_converter_function(convert_to):
-    if convert_to is None:
+def get_format_converter(format_):
+    if format_ is None or format_ == settings.XML_DUMP_FORMAT:
         return None
-    elif convert_to == VIRTUAL_CAMERA_JSON_FORMAT:
-        return dump_to_vc_json
+    elif format_ == settings.VIRTUAL_CAMERA_JSON_DUMP_FORMAT:
+        return convert_dump_to_vc_json
     else:
-        raise Exception('Converting to {format} doest not supporting!'.format(format=convert_to))
+        raise Exception('Converting to {format} doest not supporting!'.format(format=format_))
 
 
-def dump(tid, data_format, scheme, host, convert_to=None):
+def dump(tid, data_format, scheme, host):
     """
     Dump annotation for the task in specified data format.
     """
     queue = django_rq.get_queue('default')
-    converter = get_converter_function(convert_to)
     queue.enqueue_call(
         func=_dump,
         args=(tid, data_format, scheme, host),
-        kwargs={
-            'converter': converter
-        },
         job_id="annotation.dump/{}".format(tid))
 
 def check(tid):
@@ -1208,11 +1196,11 @@ class _AnnotationForSegment(_Annotation):
         self.points_paths = annotation.points_paths
 
 @transaction.atomic
-def _dump(tid, data_format, scheme, host, converter=None):
+def _dump(tid, data_format, scheme, host):
     db_task = models.Task.objects.select_for_update().get(id=tid)
     annotation = _AnnotationForTask(db_task)
     annotation.init_from_db()
-    annotation.dump(data_format, db_task, scheme, host, converter)
+    annotation.dump(data_format, db_task, scheme, host)
 
 def _calc_box_area(box):
     return (box.xbr - box.xtl) * (box.ybr - box.ytl)
@@ -1591,7 +1579,7 @@ class _AnnotationForTask(_Annotation):
                 # We don't have old boxes on the frame. Let's add all new ones.
                 self.boxes.extend(int_boxes_by_frame[frame])
 
-    def dump(self, data_format, db_task, scheme, host, converter=None):
+    def dump(self, data_format, db_task, scheme, host):
         def _flip_box(box, im_w, im_h):
             box.xbr, box.xtl = im_w - box.xtl, im_w - box.xbr
             box.ybr, box.ytl = im_h - box.ytl, im_h - box.ybr
@@ -1865,5 +1853,7 @@ class _AnnotationForTask(_Annotation):
                         path_idx += 1
                         dumper.close_track()
             dumper.close_root()
+
+        converter = get_format_converter(data_format)
         if converter is not None:
             converter(dump_path, db_task.get_upload_dirname())

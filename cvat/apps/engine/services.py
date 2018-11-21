@@ -1,11 +1,13 @@
 import json
 import logging
-import os
 import re
 import subprocess
 import xml.etree.ElementTree as ET
 
 from cvat.apps.engine.task import find_video_in_dir
+
+
+# Util service functions
 
 
 def is_version_valid(xml_el: ET.Element) -> bool:
@@ -69,13 +71,15 @@ def get_pts_times(video_file: str) -> list:
     return pts_times
 
 
-def dump_to_vc_json(dump_path: str, video_path) -> str:
+# Service functions
+
+
+def convert_dump_to_vc_json(dump_path: str, video_path: str) -> str:
     xml_el = ET.parse(dump_path)
     if not is_version_valid(xml_el):
         raise Exception('Invalid dump version')
 
     video = find_video_in_dir(video_path)
-
     pts_times = get_pts_times(video)
     res = {}
 

@@ -222,9 +222,11 @@ LOCAL_LOAD_MAX_FILES_COUNT = 500
 LOCAL_LOAD_MAX_FILES_SIZE = 512 * 1024 * 1024  # 512 MB
 
 
-ADDITIONAL_MIME_TYPES = (
-    ('text/xml', '.xml'),
-)
+XML_DUMP_FORMAT = 'o_xml'
+VIRTUAL_CAMERA_JSON_DUMP_FORMAT = 'vc_json'
 
-for type_ in ADDITIONAL_MIME_TYPES:
-    mimetypes.add_type(*type_)
+
+DUMP_FORMATS_MAP = {
+    XML_DUMP_FORMAT: '.xml',
+    VIRTUAL_CAMERA_JSON_DUMP_FORMAT: '.json',
+}
