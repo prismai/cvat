@@ -89,12 +89,17 @@ function showOverlay(message) {
 }
 
 
-function dumpAnnotationRequest(dumpButton, taskID) {
+function dumpAnnotationRequest(dumpButton, taskID, taskName, convert_to) {
     dumpButton = $(dumpButton);
     dumpButton.attr('disabled', true);
 
+    let dumpUrl = `/dump/annotation/task/${taskID}`;
+    if (convert_to !== null) {
+        dumpUrl = dumpUrl + `?convert_to=${convert_to}`
+    }
+
     $.ajax({
-        url: '/dump/annotation/task/' + taskID,
+        url: dumpUrl,
         success: onDumpRequestSuccess,
         error: onDumpRequestError,
     });

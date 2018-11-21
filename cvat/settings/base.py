@@ -14,7 +14,7 @@ https://docs.djangoproject.com/en/2.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.0/ref/settings/
 """
-
+import mimetypes
 import os
 import sys
 from pathlib import Path
@@ -220,3 +220,11 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None   # this django check disabled
 LOCAL_LOAD_MAX_FILES_COUNT = 500
 LOCAL_LOAD_MAX_FILES_SIZE = 512 * 1024 * 1024  # 512 MB
+
+
+ADDITIONAL_MIME_TYPES = (
+    ('text/xml', '.xml'),
+)
+
+for type_ in ADDITIONAL_MIME_TYPES:
+    mimetypes.add_type(*type_)
