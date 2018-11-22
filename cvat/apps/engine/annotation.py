@@ -32,7 +32,7 @@ def get_format_converter(format_):
     elif format_ == settings.VIRTUAL_CAMERA_JSON_DUMP_FORMAT:
         return convert_dump_to_vc_json
     else:
-        raise Exception('Converting to {format} doest not supporting!'.format(format=format_))
+        raise Exception('Converting to {format} does not supporting!'.format(format=format_))
 
 
 def dump(tid, data_format, scheme, host):
