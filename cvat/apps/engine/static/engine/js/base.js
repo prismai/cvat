@@ -89,12 +89,19 @@ function showOverlay(message) {
 }
 
 
-function dumpAnnotationRequest(dumpButton, taskID) {
+function dumpAnnotationRequest(dumpButton, taskID, taskName, format) {
     dumpButton = $(dumpButton);
     dumpButton.attr('disabled', true);
 
+    let dumpUrl = `/dump/annotation/task/${taskID}`;
+    let downloadUrl = `/download/annotation/task/${taskID}`;
+    if (format !== null) {
+        dumpUrl = dumpUrl + `?format=${format}`;
+        downloadUrl = downloadUrl + `?format=${format}`
+    }
+
     $.ajax({
-        url: '/dump/annotation/task/' + taskID,
+        url: dumpUrl,
         success: onDumpRequestSuccess,
         error: onDumpRequestError,
     });
@@ -129,9 +136,9 @@ function dumpAnnotationRequest(dumpButton, taskID) {
 
             function getDumpedFile() {
                 $.ajax({
-                    url: '/download/annotation/task/' + taskID,
+                    url: downloadUrl,
                     error: onGetDumpError,
-                    success: () => window.location = '/download/annotation/task/' + taskID,
+                    success: () => window.location = downloadUrl,
                     complete: () => dumpButton.attr('disabled', false)
                 });
 

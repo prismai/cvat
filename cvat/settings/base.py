@@ -14,7 +14,6 @@ https://docs.djangoproject.com/en/2.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.0/ref/settings/
 """
-
 import os
 import sys
 from pathlib import Path
@@ -220,3 +219,13 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None   # this django check disabled
 LOCAL_LOAD_MAX_FILES_COUNT = 500
 LOCAL_LOAD_MAX_FILES_SIZE = 512 * 1024 * 1024  # 512 MB
+
+
+XML_DUMP_FORMAT = 'o_xml'
+VIRTUAL_CAMERA_JSON_DUMP_FORMAT = 'vc_json'
+
+
+DUMP_FORMATS_MAP = {
+    XML_DUMP_FORMAT: '.xml',
+    VIRTUAL_CAMERA_JSON_DUMP_FORMAT: '.json',
+}

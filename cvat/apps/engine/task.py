@@ -508,15 +508,18 @@ def _find_and_unpack_archive(upload_dir):
 '''
     Search a video in upload dir and split it by frames. Copy frames to target dirs
 '''
-def _find_and_extract_video(upload_dir, output_dir, db_task, compress_quality, flip_flag, job):
-    video = None
-    for root, _, files in os.walk(upload_dir):
+
+
+def find_video_in_dir(dir):
+    for root, _, files in os.walk(dir):
         fullnames = map(lambda f: os.path.join(root, f), files)
         videos = list(filter(lambda x: _get_mime(x) == 'video', fullnames))
         if len(videos):
-            video = videos[0]
-            break
+            return videos[0]
 
+
+def _find_and_extract_video(upload_dir, output_dir, db_task, compress_quality, flip_flag, job):
+    video = find_video_in_dir(upload_dir)
     if video:
         job.meta['status'] = 'Video is being extracted..'
         job.save_meta()

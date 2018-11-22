@@ -12,6 +12,9 @@ window.cvat.dashboard = window.cvat.dashboard || {};
 window.cvat.dashboard.uiCallbacks = window.cvat.dashboard.uiCallbacks || [];
 window.cvat.config = new Config();
 
+const XML_DUMP_FORMAT = 'o_xml';
+const VIRTUAL_CAMERA_JSON_DUMP_FORMAT = 'vc_json';
+
 window.cvat.dashboard.uiCallbacks.push(function(elements) {
     elements.each(function(idx) {
         let elem = $(elements[idx]);
@@ -20,6 +23,7 @@ window.cvat.dashboard.uiCallbacks.push(function(elements) {
         let buttonsUI = elem.find('div.dashboardButtonsUI')[0];
 
         let dumpButton = $( $(buttonsUI).find('button.dashboardDumpAnnotation')[0] );
+        let dumpJsonButton = $( $(buttonsUI).find('button.dashboardDumpJSON')[0] );
         let uploadButton = $( $(buttonsUI).find('button.dashboardUploadAnnotation')[0] );
         let updateButton = $( $(buttonsUI).find('button.dashboardUpdateTask')[0] );
         let deleteButton = $( $(buttonsUI).find('button.dashboardDeleteTask')[0] );
@@ -35,7 +39,13 @@ window.cvat.dashboard.uiCallbacks.push(function(elements) {
         dumpButton.on('click', function() {
             window.cvat.dashboard.taskID = taskID;
             window.cvat.dashboard.taskName = taskName;
-            dumpAnnotationRequest(dumpButton, taskID, taskName);
+            dumpAnnotationRequest(dumpButton, taskID, taskName, XML_DUMP_FORMAT);
+        });
+
+        dumpJsonButton.on('click', function() {
+            window.cvat.dashboard.taskID = taskID;
+            window.cvat.dashboard.taskName = taskName;
+            dumpAnnotationRequest(dumpJsonButton, taskID, taskName, VIRTUAL_CAMERA_JSON_DUMP_FORMAT);
         });
 
         uploadButton.on('click', function() {
