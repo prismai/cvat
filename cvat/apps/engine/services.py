@@ -91,3 +91,18 @@ def convert_dump_to_vc_json(dump_path: str, video_path: str) -> str:
     with open(dump_path, "w") as file:
         json.dump(res, file, separators=(',', ':'))
     return dump_path
+
+
+def convert_dump_to_timestamps(dump_path: str, video_path: str) -> str:
+    xml_el = ET.parse(dump_path)
+    if not is_version_valid(xml_el):
+        raise Exception('Invalid dump version')
+
+    video = find_video_in_dir(video_path)
+    pts_times = get_pts_times(video)
+
+    with open(dump_path, mode='wt', encoding='utf-8') as f:
+        f.writelines([str(len(pts_times)) + '\n'])
+        f.write('\n'.join([str(pts) for pts in pts_times]))
+
+    return dump_path

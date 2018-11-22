@@ -18,7 +18,7 @@ import django_rq
 from django.conf import settings
 from django.db import transaction
 
-from cvat.apps.engine.services import convert_dump_to_vc_json
+from cvat.apps.engine.services import convert_dump_to_vc_json, convert_dump_to_timestamps
 from . import models
 from .task import get_frame_path, get_image_meta_cache
 from .logging import task_logger, job_logger
@@ -31,6 +31,8 @@ def get_format_converter(format_):
         return None
     elif format_ == settings.VIRTUAL_CAMERA_JSON_DUMP_FORMAT:
         return convert_dump_to_vc_json
+    elif format_ == settings.TIMESTAMPS_DUMP_FORMAT:
+        return convert_dump_to_timestamps
     else:
         raise Exception('Converting to {format} does not supporting!'.format(format=format_))
 
