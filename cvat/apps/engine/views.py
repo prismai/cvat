@@ -215,9 +215,8 @@ def download_annotation(request, tid):
         task_logger[tid].info("get dumped annotation")
         db_task = models.Task.objects.get(pk=tid)
         file_path = db_task.get_dump_path()
-        file_ext = settings.DUMP_FORMATS_MAP[format_]
         response = sendfile(request, file_path, attachment=True,
-                            attachment_filename='{}_{}{}'.format(db_task.id, db_task.name, file_ext))
+                            attachment_filename=annotation.get_dump_filename(format_, db_task))
     except Exception as e:
         task_logger[tid].error("cannot get dumped annotation", exc_info=True)
         return HttpResponseBadRequest(str(e))

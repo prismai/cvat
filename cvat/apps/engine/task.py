@@ -510,8 +510,8 @@ def _find_and_unpack_archive(upload_dir):
 '''
 
 
-def find_video_in_dir(dir):
-    for root, _, files in os.walk(dir):
+def find_video_in_dir(dir_):
+    for root, _, files in os.walk(dir_):
         fullnames = map(lambda f: os.path.join(root, f), files)
         videos = list(filter(lambda x: _get_mime(x) == 'video', fullnames))
         if len(videos):
