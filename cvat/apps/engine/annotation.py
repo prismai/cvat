@@ -5,6 +5,8 @@
 
 import os
 import copy
+from pathlib import Path
+
 import numpy as np
 
 from django.utils import timezone
@@ -20,7 +22,7 @@ from django.db import transaction
 
 from cvat.apps.engine.services import convert_dump_to_vc_json, convert_dump_to_timestamps
 from . import models
-from .task import get_frame_path, get_image_meta_cache
+from .task import get_frame_path, get_image_meta_cache, find_video_in_dir
 from .logging import task_logger, job_logger
 
 ############################# Low Level server API
@@ -35,6 +37,16 @@ def get_format_converter(format_):
         return convert_dump_to_timestamps
     else:
         raise Exception('Converting to {format} does not supporting!'.format(format=format_))
+
+
+def get_dump_filename(format_, db_task):
+    video_path = find_video_in_dir(db_task.get_upload_dirname())
+    file_ext = settings.DUMP_FORMATS_MAP[format_]
+    if format_ == settings.TIMESTAMPS_DUMP_FORMAT and video_path:
+        filename = Path(video_path).stem
+        return ''.join((filename, settings.DUMP_FORMATS_MAP[format_]))
+    else:
+        return '{}_{}{}'.format(db_task.id, db_task.name, file_ext)
 
 
 def dump(tid, data_format, scheme, host):
