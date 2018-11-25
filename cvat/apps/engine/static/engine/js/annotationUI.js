@@ -134,6 +134,7 @@ function buildAnnotationUI(job, shapeData, loadJobEvent) {
     let shortkeys = window.cvat.config.shortkeys;
 
     setupHelpWindow(shortkeys);
+    setupStatisticsRecording(job, shapeCollectionModel);
     setupSettingsWindow();
     setupMenu(job, shapeCollectionModel, annotationParser, aamModel, playerModel, historyModel);
     setupFrameFilters();
@@ -310,6 +311,22 @@ function setupHelpWindow(shortkeys) {
     }
 }
 
+function setupStatisticsRecording(job, shapeCollectionModel) {
+    function getStats() {
+        const totalStat = shapeCollectionModel.collectStatistic()[1];
+        return {manually: totalStat.manually, interpolated: totalStat.interpolated};
+    }
+
+    const stats = getStats();
+    statsController.init(job.jobid, stats);
+    setInterval(() => {
+        const stats = getStats();
+        statsController.processInterval(stats)
+
+    }, 0.3 * 1000 * 60);
+
+}
+
 
 function setupSettingsWindow() {
     let closeSettingsButton = $('#closeSettignsButton');
@@ -344,7 +361,6 @@ function setupSettingsWindow() {
         });
     });
 }
-
 
 function setupMenu(job, shapeCollectionModel, annotationParser, aamModel, playerModel, historyModel) {
     let annotationMenu = $('#annotationMenu');
@@ -604,9 +620,10 @@ function saveAnnotation(shapeCollectionModel, job) {
 
     const data = {
         annotation: exportedData,
-        stats: {manually: totalStat.manually, interpolated: totalStat.interpolated},
         logs: JSON.stringify(annotationLogs.export()),
     };
+
+    statsController.processInterval({manually: totalStat.manually, interpolated: totalStat.interpolated});
 
     saveButton.prop('disabled', true);
     saveButton.text('Saving..');

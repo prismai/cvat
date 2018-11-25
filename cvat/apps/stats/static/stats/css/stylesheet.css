@@ -36,3 +36,7 @@ div.selected {
     max-height: 100vh;
     overflow: auto;
 }
+
+th {
+    vertical-align: middle !important;
+}

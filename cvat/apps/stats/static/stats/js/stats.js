@@ -21,7 +21,7 @@ class ReactiveStats {
     }
 
     init() {
-        $.get('api/get_stats/', (data) => {
+        $.get('api/get/', (data) => {
             this._data = data || [];
             this.buildOperatorsTiles()
         })
@@ -52,9 +52,13 @@ class ReactiveStats {
         return tile
     }
 
-    createTableRow(rowData) {
-        let row = $('<tr>')
-            .append($('<th>', {scope: 'row', text: rowData.date}))
+    createTableRow(rowSpan, rowSpanCount, rowData) {
+        let row = $('<tr>');
+        if (rowSpan !== null && rowSpanCount !== null) {
+            row.append($('<th>', {rowspan: rowSpanCount, text: rowSpan}))
+        }
+        row
+            .append($('<th>', {text: rowData.job}))
             .append($('<td>', {text: rowData.hours}))
             .append($('<td>', {text: rowData.boxes_count}))
             .append($('<td>', {text: rowData.ratio}));
@@ -72,6 +76,15 @@ class ReactiveStats {
         }
         this._currentAnnotator = operator;
         this._operatorsTilesCollection[operator].addClass('selected');
-        this._data[operator].stats.forEach((item) => this.createTableRow(item))
+        const stats = this._data[operator].stats;
+        Object.keys(stats).sort((a, b) => new Date(b) - new Date(a)).forEach((key) => {
+            stats[key].forEach((item, i) => {
+                if (i === 0) {
+                    this.createTableRow(key, stats[key].length, item)
+                } else {
+                    this.createTableRow(null, null, item)
+                }
+            })
+        })
     }
 }
