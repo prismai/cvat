@@ -24,6 +24,10 @@ class StatsController {
         this.updateState(toUpdate, true)
     }
 
+    resetInterval() {
+        this.updateState({intervalTime: this.currentTime()}, false)
+    }
+
     currentTime() {
         return new Date().toISOString()
     }
