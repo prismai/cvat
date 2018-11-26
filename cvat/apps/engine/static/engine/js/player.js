@@ -580,9 +580,10 @@ class PlayerController {
     }
 
     activateShape(shape) {
-        if (shape) {
-            shape.active = true;
+        if (['resize', 'drag'].indexOf(window.cvat.mode) !== -1 || !shape) {
+            return false;
         }
+        shape.active = true;
     }
 
     changeStep(e) {
