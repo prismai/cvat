@@ -324,7 +324,7 @@ function setupStatisticsRecording(job, shapeCollectionModel) {
 
     const stats = getStats();
     statsController.init(job.jobid, stats);
-    setInterval(processInterval, 4 * 1000 * 60);
+    setInterval(processInterval, 10 * 1000 * 60);
 
     $(window).blur(processInterval);
     $(window).focus(() => statsController.resetInterval())
