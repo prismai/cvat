@@ -317,13 +317,17 @@ function setupStatisticsRecording(job, shapeCollectionModel) {
         return {manually: totalStat.manually, interpolated: totalStat.interpolated};
     }
 
-    const stats = getStats();
-    statsController.init(job.jobid, stats);
-    setInterval(() => {
+    function processInterval() {
         const stats = getStats();
         statsController.processInterval(stats)
+    }
 
-    }, 10 * 1000 * 60);
+    const stats = getStats();
+    statsController.init(job.jobid, stats);
+    setInterval(processInterval, 4 * 1000 * 60);
+
+    $(window).blur(processInterval);
+    $(window).focus(() => statsController.resetInterval())
 
 }
 
