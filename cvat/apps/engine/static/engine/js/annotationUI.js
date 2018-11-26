@@ -323,7 +323,7 @@ function setupStatisticsRecording(job, shapeCollectionModel) {
         const stats = getStats();
         statsController.processInterval(stats)
 
-    }, 0.3 * 1000 * 60);
+    }, 10 * 1000 * 60);
 
 }
 
