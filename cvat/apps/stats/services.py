@@ -54,14 +54,14 @@ def calc_group_stats(saves: list) -> dict:
     }
 
 
-def collect_annotators_stats() -> dict:
+def collect_annotators_stats(users) -> dict:
     """
     Service function for collecting annotation statistics grouped by users (annotators)
     and save date
     """
 
     # Setup default dict grouped by users
-    stats = {user.id: {'name': user.get_full_name(), 'stats': {}} for user in User.objects.all()}
+    stats = {user.id: {'name': user.get_full_name(), 'stats': {}} for user in users}
 
     for user_id, item in stats.items():
         # get all saves for user with casting datetime field to date field (to group saves by date)
