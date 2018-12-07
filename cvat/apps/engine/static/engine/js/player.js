@@ -468,6 +468,7 @@ class PlayerController {
                 let active = activeTrack();
                 if (active !== null) {
                     active.switchKeyFrame(window.cvat.player.frames.current);
+                    this.activateShape(active);
                 }
                 e.preventDefault()
             }.bind(this));
