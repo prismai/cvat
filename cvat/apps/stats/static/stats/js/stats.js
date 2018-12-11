@@ -52,6 +52,20 @@ class ReactiveStats {
         return tile
     }
 
+    static secondsToHumanReadable(seconds) {
+        let sec_num = parseInt(seconds, 10);
+        let hours = Math.floor(sec_num / 3600);
+        let minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+
+        if (hours < 10) {
+            hours = "0" + hours;
+        }
+        if (minutes < 10) {
+            minutes = "0" + minutes;
+        }
+        return `${hours}:${minutes}`
+    }
+
     createTableRow(rowSpan, rowSpanCount, rowData) {
         let row = $('<tr>');
         if (rowSpan !== null && rowSpanCount !== null) {
@@ -59,7 +73,7 @@ class ReactiveStats {
         }
         row
             .append($('<th>', {text: rowData.job}))
-            .append($('<td>', {text: rowData.hours}))
+            .append($('<td>', {text: ReactiveStats.secondsToHumanReadable(rowData.hours)}))
             .append($('<td>', {text: rowData.boxes_count}))
             .append($('<td>', {text: rowData.ratio}));
         this._tableBody.append(row)

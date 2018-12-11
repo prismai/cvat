@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import user_passes_test
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 
@@ -19,8 +18,11 @@ def stats_index_view(request):
 def save_interval_stats(request):
     data = request.POST
     job_id = data.get('job')
-    save_job_stats(job_id, request.user.id, data)
-    return HttpResponse(status=201)
+    save = save_job_stats(job_id, request.user.id, data)
+    status = 201
+    if not save:
+        status = 400
+    return HttpResponse(status=status)
 
 
 @login_required

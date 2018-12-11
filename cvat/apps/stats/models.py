@@ -10,6 +10,8 @@ class JobStatsSave(TimeStampedModel):
     start = models.DateTimeField(blank=True, null=True)
     end = models.DateTimeField(blank=True, null=True)
 
+    system_tracked_time = models.IntegerField(blank=True, null=True)
+
     annotated_manually = models.IntegerField()  # Annotated objects after last save
     total_annotated_manually = models.IntegerField()  # Total count of manually annotated objects
     total_interpolated = models.IntegerField()  # Total count of interpolated objects

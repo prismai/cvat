@@ -43,13 +43,16 @@ class StatsController {
         return this.state
     }
 
-    sendInterval(data) {
+    sendInterval(data, trackedTime) {
         data.job = this.state.jobId;
+        if (trackedTime) {
+            data.trackedTime = trackedTime
+        }
         $.post('/stats/api/save/', data);
         return true
     }
 
-    processInterval(stats) {
+    processInterval(stats, trackedTime) {
         let toUpdate = {
             intervalTime: this.currentTime(),
         };
@@ -61,7 +64,7 @@ class StatsController {
                 start: this.state.intervalTime,
                 end: toUpdate.intervalTime,
             };
-            this.sendInterval(intervalData);
+            this.sendInterval(intervalData, trackedTime);
 
             toUpdate.manually = stats.manually;
             toUpdate.interpolated = stats.interpolated;

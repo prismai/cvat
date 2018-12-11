@@ -620,6 +620,7 @@ function saveAnnotation(shapeCollectionModel, job) {
     });
 
     let exportedData = shapeCollectionModel.export();
+    const trackedTime = Logger.getWorkingTime();
     let annotationLogs = Logger.getLogs();
 
     const data = {
@@ -627,7 +628,9 @@ function saveAnnotation(shapeCollectionModel, job) {
         logs: JSON.stringify(annotationLogs.export()),
     };
 
-    statsController.processInterval({manually: totalStat.manually, interpolated: totalStat.interpolated});
+    let stats = {manually: totalStat.manually, interpolated: totalStat.interpolated};
+
+    statsController.processInterval(stats, trackedTime);
 
     saveButton.prop('disabled', true);
     saveButton.text('Saving..');

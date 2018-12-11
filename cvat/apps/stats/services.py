@@ -2,7 +2,7 @@ import datetime
 from itertools import groupby
 
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.db import models, IntegrityError
 from django.db.models import F
 from django.db.models.functions import Cast
 
@@ -11,12 +11,13 @@ from cvat.apps.stats.models import JobStatsSave
 User = get_user_model()
 
 
-def save_job_stats(job_id, annotator_id, data):
+def save_job_stats(job_id, annotator_id, data: dict):
     """
     Service function to create job annotation state log
     """
     if not data:
         return None
+    system_tracked_time = data.get('trackedTime', None)
     to_save = {
         'job_id': job_id,
         'annotator_id': annotator_id,
@@ -24,11 +25,13 @@ def save_job_stats(job_id, annotator_id, data):
         'end': data.get('end'),
         'annotated_manually': data.get('manually'),
         'total_annotated_manually': data.get('totalManually'),
-        'total_interpolated': data.get('totalInterpolated')
+        'total_interpolated': data.get('totalInterpolated'),
+        'system_tracked_time': system_tracked_time
     }
-    save = None
-    if None not in to_save.values():
+    try:
         save = JobStatsSave.objects.create(**to_save)
+    except IntegrityError:
+        return None
     return save
 
 
@@ -37,8 +40,7 @@ def calc_spent_time(saves: list, key='interval_length') -> float:
     Util function which calculates total time of all saves interval in list
     """
     time = sum([x[key] for x in saves], datetime.timedelta())
-    time = round(time.total_seconds() / 60 / 60, 2)
-    return time
+    return time.total_seconds()
 
 
 def calc_group_stats(saves: list) -> dict:
