@@ -413,6 +413,13 @@ var Logger = {
         return this._logger.getLogs();
     },
 
+    getWorkingTime: function() {
+        if (this._logger.isInitialized) {
+            return this._logger.getWorkingTime()
+        }
+        return null
+    },
+
     /**
      * Logger.setUsername just set username property which will be added to all log messages
      * @param {String} username
