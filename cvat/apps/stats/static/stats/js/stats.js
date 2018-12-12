@@ -73,7 +73,7 @@ class ReactiveStats {
         }
         row
             .append($('<th>', {text: rowData.job}))
-            .append($('<td>', {text: ReactiveStats.secondsToHumanReadable(rowData.hours)}))
+            .append($('<td>', {text: ReactiveStats.secondsToHumanReadable(rowData.time)}))
             .append($('<td>', {text: rowData.boxes_count}))
             .append($('<td>', {text: rowData.ratio}));
         this._tableBody.append(row)

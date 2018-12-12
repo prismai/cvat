@@ -55,8 +55,8 @@ def calc_group_stats(saves: list) -> dict:
     boxes_count = sum([i['annotated_manually'] for i in saves])
     return {
         'boxes_count': boxes_count,
-        'hours': spent_time,
-        'ratio': round(boxes_count / spent_time, 2) if spent_time else 0
+        'time': spent_time,
+        'ratio': round(boxes_count / (spent_time / 60 / 60), 2) if spent_time else 0
     }
 
 
