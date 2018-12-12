@@ -67,7 +67,7 @@ def collect_annotators_stats(users) -> dict:
     """
 
     # Setup default dict grouped by users
-    stats = {user.id: {'name': user.get_full_name(), 'stats': {}} for user in users}
+    stats = {user.id: {'name': user.username, 'full_name': user.get_full_name(), 'stats': {}} for user in users}
 
     for user_id, item in stats.items():
         # get all saves for user with casting datetime field to date field (to group saves by date)

@@ -43,7 +43,9 @@ class ReactiveStats {
             class: 'col-md-12'
         })
             .data('operator', operator)
-            .append($('<p>', {text: tileData.name, class: 'operator-name'}));
+            .append($('<p>', {
+                text: tileData.full_name || tileData.name,
+                class: 'operator-name'}));
         let tile = $('<div>', {
             id: `operator-tile-${operator}`,
             class: 'row operator-tile',
