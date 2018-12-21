@@ -45,7 +45,8 @@ class ReactiveStats {
             .data('operator', operator)
             .append($('<p>', {
                 text: tileData.full_name || tileData.name,
-                class: 'operator-name'}));
+                class: 'operator-name'
+            }));
         let tile = $('<div>', {
             id: `operator-tile-${operator}`,
             class: 'row operator-tile',
@@ -68,17 +69,15 @@ class ReactiveStats {
         return `${hours}:${minutes}`
     }
 
-    createTableRow(rowSpan, rowSpanCount, rowData) {
-        let row = $('<tr>');
-        if (rowSpan !== null && rowSpanCount !== null) {
-            row.append($('<th>', {rowspan: rowSpanCount, text: rowSpan}))
-        }
-        row
-            .append($('<th>', {text: rowData.job}))
-            .append($('<td>', {text: ReactiveStats.secondsToHumanReadable(rowData.time)}))
-            .append($('<td>', {text: rowData.boxes_count}))
-            .append($('<td>', {text: rowData.ratio}));
-        this._tableBody.append(row)
+    createTableRow(row) {
+        let el = $('<tr>');
+        row.spanRows.forEach((item) => el.append($('<th>', {rowspan: item.count, text: item.text})));
+        el
+            .append($('<th>', {text: row.data.job}))
+            .append($('<td>', {text: ReactiveStats.secondsToHumanReadable(row.data.time)}))
+            .append($('<td>', {text: row.data.boxes_count}))
+            .append($('<td>', {text: row.data.ratio}));
+        this._tableBody.append(el)
     }
 
 
@@ -95,10 +94,16 @@ class ReactiveStats {
         const stats = this._data[operator].stats;
         Object.keys(stats).sort((a, b) => new Date(b) - new Date(a)).forEach((key) => {
             stats[key].forEach((item, i) => {
+                let row = {data: item, spanRows: []};
                 if (i === 0) {
-                    this.createTableRow(key, stats[key].length, item)
+                    const totalBoxes = stats[key].map(item => item['boxes_count']).reduce((a, b) => a + b, 0);
+                    row.spanRows = [
+                        {count: stats[key].length, text: key},
+                        {count: stats[key].length, text: totalBoxes}
+                    ];
+                    this.createTableRow(row)
                 } else {
-                    this.createTableRow(null, null, item)
+                    this.createTableRow(row)
                 }
             })
         })
