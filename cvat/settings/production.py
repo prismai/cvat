@@ -38,8 +38,10 @@ DATABASES = {
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+
 sentry_sdk.init(
-    dsn=os.getenv('SENTRY_DSN'),
+    dsn=SENTRY_DSN,
     integrations=[DjangoIntegration()],
     environment=os.getenv('DJANGO_CONFIGURATION')
 )
