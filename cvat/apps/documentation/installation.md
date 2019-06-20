@@ -70,6 +70,12 @@ server. Proxy is an advanced topic and it is not covered by the guide.
     cd cvat
     ```
 
+-   Create environment file from template
+
+    ```bash
+    cp env.template .env
+    ```
+
 -   Build docker images by default. It will take some time to download public
     docker image ubuntu:16.04 and install all necessary ubuntu packages to run
     CVAT server.

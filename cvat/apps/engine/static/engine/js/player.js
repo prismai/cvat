@@ -19,7 +19,7 @@
 class FrameProvider extends Listener {
     constructor(stop, tid) {
         super('onFrameLoad', () => this._loaded);
-        this._MAX_LOAD = 500;
+        this._MAX_LOAD = 1050;
 
         this._stack = [];
         this._loadInterval = null;
@@ -430,6 +430,7 @@ class PlayerModel extends Listener {
 class PlayerController {
     constructor(playerModel, activeTrack, find, playerOffset) {
         this._model = playerModel;
+        this._activeTrack = activeTrack;
         this._find = find;
         this._rewinding = false;
         this._moving = false;
@@ -509,6 +510,22 @@ class PlayerController {
                 return false;
             });
 
+            let toggleKeyFrameHandler = Logger.shortkeyLogDecorator((e) => {
+                let active = activeTrack();
+                if (active !== null) {
+                    active.switchKeyFrame(window.cvat.player.frames.current);
+                }
+                e.preventDefault()
+            });
+
+            let toggleOutsideHandler = Logger.shortkeyLogDecorator((e) => {
+                let active = activeTrack();
+                if (active !== null) {
+                    active.switchOutside(window.cvat.player.frames.current)
+                }
+                e.preventDefault()
+            });
+
             const { shortkeys } = window.cvat.config;
 
             Mousetrap.bind(shortkeys.next_frame.value, nextHandler, 'keydown');
@@ -520,6 +537,8 @@ class PlayerController {
             Mousetrap.bind(shortkeys.forward_frame.value, forwardHandler, 'keydown');
             Mousetrap.bind(shortkeys.backward_frame.value, backwardHandler, 'keydown');
             Mousetrap.bind(shortkeys.play_pause.value, playPauseHandler, 'keydown');
+            Mousetrap.bind(shortkeys.toggle_key_frame.value, toggleKeyFrameHandler, 'keydown');
+            Mousetrap.bind(shortkeys.toggle_outside.value, toggleOutsideHandler, 'keydown');
             Mousetrap.bind(shortkeys.clockwise_rotation.value, (e) => {
                 e.preventDefault();
                 this.rotate(90);
@@ -619,6 +638,12 @@ class PlayerController {
         }
     }
 
+    activateShape(shape) {
+        if (shape) {
+            shape.active = true;
+        }
+    }
+
     changeStep(e) {
         const value = Math.clamp(+e.target.value, +e.target.min, +e.target.max);
         e.target.value = value;
@@ -651,12 +676,16 @@ class PlayerController {
     }
 
     next() {
+        let activeShape = this._activeTrack();
         this._model.shift(1);
+        this.activateShape(activeShape);
         this._model.pause();
     }
 
     previous() {
+        let activeShape = this._activeTrack();
         this._model.shift(-1);
+        this.activateShape(activeShape);
         this._model.pause();
     }
 

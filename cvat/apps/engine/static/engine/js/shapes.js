@@ -2018,9 +2018,13 @@ class ShapeView extends Listener {
 
                 let outsideButton = document.createElement('button');
                 outsideButton.classList.add('graphicButton', 'outsideButton');
+                outsideButton.setAttribute('title', `
+                    ${shortkeys['toggle_outside'].view_value} - ${shortkeys['toggle_outside'].description}`);
 
                 let keyframeButton = document.createElement('button');
                 keyframeButton.classList.add('graphicButton', 'keyFrameButton');
+                keyframeButton.setAttribute('title', `
+                    ${shortkeys['toggle_key_frame'].view_value} - ${shortkeys['toggle_key_frame'].description}`);
 
                 interpolationCenter.appendChild(outsideButton);
                 interpolationCenter.appendChild(keyframeButton);

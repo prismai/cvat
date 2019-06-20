@@ -19,3 +19,17 @@ docker-compose.override.yml
 __pycache__
 *.pyc
 ._*
+.DS_Store
+
+
+# Ignore direnv
+.envrc
+.direnv
+
+
+# Ignore PyCharm files
+.idea
+
+
+# Ignore pyenv
+.python-version
