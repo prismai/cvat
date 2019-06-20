@@ -861,6 +861,7 @@ class ShapeCollectionModel extends Listener {
 class ShapeCollectionController {
     constructor(collectionModel) {
         this._model = collectionModel;
+        this._movingModeActive = false;
         this._filterController = new FilterController(collectionModel.filter);
         setupCollectionShortcuts.call(this);
 
@@ -937,6 +938,14 @@ class ShapeCollectionController {
                 }
             }.bind(this));
 
+            let movingModeActivate = Logger.shortkeyLogDecorator(function () {
+                this._movingModeActive = true;
+            }.bind(this));
+
+            let movingModeDeactivate = Logger.shortkeyLogDecorator(function () {
+                this._movingModeActive = false;
+            }.bind(this));
+
             let nextShapeType = Logger.shortkeyLogDecorator(function(e) {
                 if (window.cvat.mode === null) {
                     let next = $('#shapeTypeSelector option:selected').next();
@@ -975,6 +984,8 @@ class ShapeCollectionController {
             Mousetrap.bind(shortkeys["change_shape_color"].value, changeShapeColorHandler.bind(this), 'keydown');
             Mousetrap.bind(shortkeys['next_shape_type'].value, nextShapeType.bind(this), 'keydown');
             Mousetrap.bind(shortkeys['prev_shape_type'].value, prevShapeType.bind(this), 'keydown');
+            Mousetrap.bind(shortkeys["activateMovingMode"].value, movingModeActivate.bind(this), 'keydown');
+            Mousetrap.bind(shortkeys["activateMovingMode"].value, movingModeDeactivate.bind(this), 'keyup');
 
 
             if (window.cvat.job.z_order) {
@@ -1223,7 +1234,9 @@ class ShapeCollectionView {
 
         this._frameContent.on('mousedown', (e) => {
             if (e.target === this._frameContent.node) {
-                this._controller.resetActive();
+                if (!this._controller._movingModeActive) {
+                    this._controller.resetActive();
+                }
             }
         });
 

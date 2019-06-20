@@ -286,6 +286,12 @@ class Config {
                 description: 'redo',
             },
 
+            activateMovingMode: {
+                value: 'shift',
+                view_value: 'Shift',
+                description: 'activate moving mode'
+            },
+
             cancel_mode: {
                 value: 'esc',
                 view_value: 'Esc',
