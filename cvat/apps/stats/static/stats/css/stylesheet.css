@@ -1,0 +1,38 @@
+body {
+    overflow-y: hidden;
+}
+
+.operator-tile {
+    height: 5vw;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+}
+
+.operator-tile:hover {
+    background-color: #ECECEC;
+    cursor: pointer;
+}
+
+div.selected {
+    background-color: #ECECEC;
+}
+
+.tiles-container {
+    max-height: 100vh;
+    overflow: auto;
+}
+
+.stats-table > thead {
+    overflow-y: auto;
+}
+
+.stats-table > thead th {
+    position: sticky;
+    top: 0;
+}
+
+.stats-table-container {
+    max-height: 100vh;
+    overflow: auto;
+}

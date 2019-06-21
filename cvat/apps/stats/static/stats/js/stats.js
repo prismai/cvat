@@ -15,8 +15,7 @@ class ReactiveStats {
         this._data = null;
         this._currentAnnotator = null;
         this._tilesContainer = $('.tiles-container');
-        this._tableBody = $('.stats-table').find('tbody');
-
+        this._tableBody = $('.stats-table').find('.stats-table-body');
         this._operatorsTilesCollection = {}
     }
 

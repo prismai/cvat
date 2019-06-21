@@ -16,6 +16,11 @@
         </title>
 
         {% compress css %}
+            {% block head_css_3rdparty %}
+            {% endblock %}
+        {% endcompress %}
+
+        {% compress css %}
             {% block head_css %}
                 <link rel="stylesheet" type="text/css" href="{% static 'engine/base.css' %}">
             {% endblock %}

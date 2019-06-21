@@ -39,7 +39,7 @@ from cvat.apps.engine.serializers import (TaskSerializer, UserSerializer,
 from django.contrib.auth.models import User
 from cvat.apps.authentication import auth
 from rest_framework.permissions import SAFE_METHODS
-from cvat.apps.stats.utils import save_job_stats
+from cvat.apps.stats.services import save_job_stats
 
 # Server REST API
 @login_required
@@ -405,8 +405,6 @@ class JobViewSet(viewsets.GenericViewSet,
                     return Response(data=str(e), status=status.HTTP_400_BAD_REQUEST)
                 return Response(data)
 
-    @login_required
-    @permission_required(perm=['engine.view_task', 'engine.change_annotation'], raise_exception=True)
     @action(detail=True, methods=['POST'], serializer_class=None)
     def stats(self, request, pk):
         stats = request.data.get('stats', None)
