@@ -24,7 +24,8 @@ from rest_framework import mixins
 from django_filters import rest_framework as filters
 import django_rq
 from django.db import IntegrityError
-
+from django.db import transaction
+from django.contrib.auth.decorators import permission_required
 
 from . import annotation, task, models
 from cvat.settings.base import JS_3RDPARTY, CSS_3RDPARTY
@@ -38,6 +39,7 @@ from cvat.apps.engine.serializers import (TaskSerializer, UserSerializer,
 from django.contrib.auth.models import User
 from cvat.apps.authentication import auth
 from rest_framework.permissions import SAFE_METHODS
+from cvat.apps.stats.utils import save_job_stats
 
 # Server REST API
 @login_required
@@ -402,6 +404,15 @@ class JobViewSet(viewsets.GenericViewSet,
                 except (AttributeError, IntegrityError) as e:
                     return Response(data=str(e), status=status.HTTP_400_BAD_REQUEST)
                 return Response(data)
+
+    @login_required
+    @permission_required(perm=['engine.view_task', 'engine.change_annotation'], raise_exception=True)
+    @action(detail=True, methods=['POST'], serializer_class=None)
+    def stats(self, request, pk):
+        stats = request.data.get('stats', None)
+        transaction.on_commit(lambda: save_job_stats(pk, request.user.id, stats))
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,

@@ -31,5 +31,9 @@ __pycache__
 .idea
 
 
+# Local settings
+/cvat/settings/local.py
+
+
 # Ignore pyenv
 .python-version

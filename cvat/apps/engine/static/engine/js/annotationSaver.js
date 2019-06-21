@@ -117,6 +117,27 @@ class AnnotationSaverModel extends Listener {
         });
     }
 
+    async _stat() {
+        const totalStat = this._shapeCollection.collectStatistic()[1];
+
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: `/api/v1/jobs/${window.cvat.job.id}/stats`,
+                type: 'POST',
+                data: JSON.stringify({
+                    stats: totalStat
+                }),
+                contentType: 'application/json',
+            }).done(() => {
+                resolve();
+            }).fail((errorData) => {
+                const message = `Could not send stat. Code: ${errorData.status}. `
+                    + `Message: ${errorData.responseText || errorData.statusText}`;
+                reject(new Error(message));
+            });
+        });
+    }
+
     _split(exported) {
         const exportedIDs = Array.from(exported.shapes, shape => +shape.id)
             .concat(Array.from(exported.tracks, track => +track.id));
@@ -262,6 +283,7 @@ class AnnotationSaverModel extends Listener {
             }
 
             await this._logs();
+            await this._stat();
         } catch (error) {
             this.notify('saveUnlocked');
             this.notify('saveError', error.message);
