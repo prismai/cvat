@@ -262,11 +262,12 @@ class TaskView {
 
     _renderAvailableAssignees(job) {
         let availableAssignees = [];
+        if (!job.assignee) {
+            availableAssignees.push(`<option disabled="disabled" selected="selected" value=""></option>`);
+        }
         for (let assignee of this._availableAssignees) {
-            if (!job.assignee) {
-                availableAssignees.push(`<option disabled="disabled" selected="selected" value=""></option>`);
-            }
-            if (job.assignee !== null && job.assignee.id === assignee.id) {
+            if (job.assignee !== null && job.assignee === assignee.id) {
+                console.log(job.assignee.id);
                 availableAssignees.push(`<option selected="selected" value="${assignee.id}">${assignee.name}</option>`);
             } else {
                 availableAssignees.push(`<option value="${assignee.id}">${assignee.name}</option>`);
