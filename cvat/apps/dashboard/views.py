@@ -3,10 +3,10 @@
 #
 # SPDX-License-Identifier: MIT
 
-from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
-from django.shortcuts import redirect
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.conf import settings
+
 from cvat.apps.authentication.decorators import login_required
 
 from cvat.settings.base import JS_3RDPARTY, CSS_3RDPARTY

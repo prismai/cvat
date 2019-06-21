@@ -225,6 +225,57 @@ class TaskView {
         }
     }
 
+    serializeForm(form) {
+        return form.serializeArray()
+            .reduce(function (a, x) {
+                a[x.name] = x.value;
+                return a;
+            }, {})
+    }
+    _updateJobDetails(form) {
+        let formData = this.serializeForm(form);
+
+        try {
+            $.ajax({
+                url: `/api/v1/jobs/${formData.id}`,
+                type: 'PATCH',
+                contentType: 'application/json',
+                data: JSON.stringify(formData)
+            }).done(() => {
+                this._onupdate();
+                showMessage('Job has been successfully updated');
+            }).fail((errorData) => {
+                const message = `Can not build CVAT dashboard. Code: ${errorData.status}. ` +
+                    `Message: ${errorData.responseText || errorData.statusText}`;
+                showMessage(message);
+            });
+        } catch (exception) {
+            showMessage(exception);
+        }
+    }
+
+    _customDateFormatter(date) {
+        let estimatedCompletionDate = (date === null ? null: new Date(date));
+
+        return (estimatedCompletionDate === null ? null: `${estimatedCompletionDate.getFullYear()}-${("0" + (estimatedCompletionDate.getMonth() + 1)).slice(-2)}-${("0" + (estimatedCompletionDate.getDate())).slice(-2)}`);
+    }
+
+    _renderAvailableAssignees(job) {
+        let availableAssignees = [];
+        for (let assignee of this._availableAssignees) {
+            if (!job.assignee) {
+                availableAssignees.push(`<option disabled="disabled" selected="selected" value=""></option>`);
+            }
+            if (job.assignee !== null && job.assignee.id === assignee.id) {
+                availableAssignees.push(`<option selected="selected" value="${assignee.id}">${assignee.name}</option>`);
+            } else {
+                availableAssignees.push(`<option value="${assignee.id}">${assignee.name}</option>`);
+            }
+        }
+
+        return availableAssignees;
+    }
+
     init(details) {
         for (let prop in details) {
             this[`_${prop}`] = details[prop];
@@ -271,12 +322,45 @@ class TaskView {
             }).appendTo(buttonsContainer);
         }
 
-
         const jobsContainer = $(`<table class="dashboardJobList regular">`);
         for (let segment of this._segments) {
             for (let job of segment.jobs) {
-                const link = `${baseURL}?id=${job.id}`;
-                jobsContainer.append($(`<tr> <td> <a href="${link}"> ${link} </a> </td> </tr>`));
+                let availableAssignees = self._renderAvailableAssignees(job),
+                    estimatedCompletionDate = self._customDateFormatter(job.estimated_completion_date);
+
+                let jobContainer = $(`
+                    <tr class="job-block">
+                        <form id="id-job-form-${job.id}"></form>
+                        <td><input hidden name="id" value="${job.id}" form="id-job-form-${job.id}"></td>
+                        <td><a href="${baseURL}?id=${job.id}">Job #${job.id}</a></td>
+                        <td>
+                            <select class="form-field job-form-field" name="assignee" form="id-job-form-${job.id}">
+                                ${availableAssignees}
+                            </select>
+                        </td>
+                        <td><input
+                                form="id-job-form-${job.id}"
+                                class="form-field job-form-field"
+                                type="date"
+                                name="estimated_completion_date"
+                                value="${estimatedCompletionDate}">
+                        </td>
+                        <td><input
+                                form="id-job-form-${job.id}"
+                                class="form-field job-form-field"
+                                type="number"
+                                value="${job.progress}"
+                                min="1" max="100" step="1"
+                                name="progress"
+                                placeholder="job progress">
+                        </td>
+                    </tr>`);
+                jobContainer.find('.job-form-field').on('change', (e) => {
+                    let el = $(e.currentTarget),
+                        form = $(`#${el.attr('form')}`);
+                    self._updateJobDetails(form);
+                });
+                jobsContainer.append(jobContainer);
             }
         }
 
@@ -298,12 +382,13 @@ class TaskView {
 
 
 class DashboardView {
-    constructor(metaData, taskData) {
+    constructor(metaData, taskData, availableAssignees) {
         this._dashboardList = taskData.results;
         this._maxUploadSize = metaData.max_upload_size;
         this._maxUploadCount = metaData.max_upload_count;
         this._baseURL = metaData.base_url;
         this._sharePath = metaData.share_path;
+        this.availableAssignees = availableAssignees;
 
         this._setupList();
         this._setupTaskSearch();
@@ -316,6 +401,7 @@ class DashboardView {
 
         const baseURL = this._baseURL;
         let overlay = null;
+        let self = this;
         dashboardPagination.pagination({
             dataSource: `/api/v1/tasks${window.location.search}`,
             locator: 'results',
@@ -337,6 +423,7 @@ class DashboardView {
                 }
                 dashboardList.empty();
                 for (let details of pageList) {
+                    details.availableAssignees = self.availableAssignees;
                     const detailsCopy = JSON.parse(JSON.stringify(details));
                     const taskView = new TaskView(detailsCopy, () => {
                         // on delete task callback
@@ -747,7 +834,7 @@ class DashboardView {
                 name: name,
                 labels: LabelsInfo.deserialize(labels),
                 image_quality: compressQuality
-            }
+            };
 
             if (bugTrackerLink) {
                 description.bug_tracker = bugTrackerLink;
@@ -857,13 +944,13 @@ class DashboardView {
 DashboardView.decorators = (action) => {
     DashboardView._decorators = DashboardView._decorators || {};
     return DashboardView._decorators[action] || [];
-}
+};
 
 DashboardView.registerDecorator = (action, decorator) => {
     DashboardView._decorators = DashboardView._decorators || {};
     DashboardView._decorators[action] = DashboardView._decorators[action] || [];
     DashboardView._decorators[action].push(decorator);
-}
+};
 
 
 // DASHBOARD ENTRYPOINT
@@ -872,9 +959,10 @@ window.addEventListener('DOMContentLoaded', () => {
         // TODO: Use REST API in order to get meta
         $.get('/dashboard/meta'),
         $.get(`/api/v1/tasks${window.location.search}`),
-    ).then((metaData, taskData) => {
+        $.get(`/api/v1/users/availableAssignees`),
+    ).then((metaData, taskData, availableAssignees) => {
         try {
-            new DashboardView(metaData[0], taskData[0]);
+            new DashboardView(metaData[0], taskData[0], availableAssignees[0]);
         }
         catch(exception) {
             $('#content').empty();

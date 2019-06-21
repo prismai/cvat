@@ -50,12 +50,22 @@ class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Job
         fields = ('url', 'id', 'assignee', 'status', 'start_frame',
-            'stop_frame', 'task_id')
+            'stop_frame', 'task_id', 'estimated_completion_date', 'progress')
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source="get_full_name")
+
+    class Meta:
+        model = User
+        fields = ('id', 'name')
+        read_only_fields = ('id', 'name')
 
 class SimpleJobSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = models.Job
-        fields = ('url', 'id', 'assignee', 'status')
+        fields = ('url', 'id', 'assignee', 'status',
+            'estimated_completion_date', 'progress')
 
 class SegmentSerializer(serializers.ModelSerializer):
     jobs = SimpleJobSerializer(many=True, source='job_set')

@@ -29,13 +29,12 @@ from django.db import IntegrityError
 from . import annotation, task, models
 from cvat.settings.base import JS_3RDPARTY, CSS_3RDPARTY
 from cvat.apps.authentication.decorators import login_required
-import logging
 from .log import slogger, clogger
 from cvat.apps.engine.models import StatusChoice, Task, Job, Plugin
 from cvat.apps.engine.serializers import (TaskSerializer, UserSerializer,
    ExceptionSerializer, AboutSerializer, JobSerializer, ImageMetaSerializer,
    RqStatusSerializer, TaskDataSerializer, LabeledDataSerializer,
-   PluginSerializer, FileInfoSerializer, LogEventSerializer)
+   PluginSerializer, FileInfoSerializer, LogEventSerializer, SimpleUserSerializer)
 from django.contrib.auth.models import User
 from cvat.apps.authentication import auth
 from rest_framework.permissions import SAFE_METHODS
@@ -427,6 +426,13 @@ class UserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     def self(request):
         serializer = UserSerializer(request.user, context={ "request": request })
         return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'], serializer_class=SimpleUserSerializer, pagination_class=None)
+    def availableAssignees(self, request, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+
+        return Response(serializer.data)
+
 
 class PluginViewSet(viewsets.ModelViewSet):
     queryset = Plugin.objects.all()

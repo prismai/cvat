@@ -14,6 +14,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 
+from cvat.apps.engine.fields import PercentField
+
+
 class SafeCharField(models.CharField):
     def get_prep_value(self, value):
         value = super().get_prep_value(value)
@@ -165,6 +168,8 @@ class Job(models.Model):
     assignee = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=32, choices=StatusChoice.choices(),
         default=StatusChoice.ANNOTATION)
+    estimated_completion_date = models.DateField(null=True, blank=True)
+    progress = PercentField(default=0)
 
     class Meta:
         default_permissions = ()
