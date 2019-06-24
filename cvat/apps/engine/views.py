@@ -24,8 +24,6 @@ from rest_framework import mixins
 from django_filters import rest_framework as filters
 import django_rq
 from django.db import IntegrityError
-from django.db import transaction
-from django.contrib.auth.decorators import permission_required
 
 from . import annotation, task, models
 from cvat.settings.base import JS_3RDPARTY, CSS_3RDPARTY
@@ -39,7 +37,6 @@ from cvat.apps.engine.serializers import (TaskSerializer, UserSerializer,
 from django.contrib.auth.models import User
 from cvat.apps.authentication import auth
 from rest_framework.permissions import SAFE_METHODS
-from cvat.apps.stats.services import save_job_stats
 
 # Server REST API
 @login_required
@@ -252,14 +249,15 @@ class TaskViewSet(auth.TaskGetQuerySetMixin, viewsets.ModelViewSet):
         username = request.user.username
         db_task = self.get_object()
         timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        file_ext = request.query_params.get("format", "xml")
+        fmt = request.query_params.get("convertTo", settings.XML_DUMP_FORMAT)
+        file_ext = settings.DUMP_FORMATS_MAP.get(fmt, settings.DUMP_FORMATS_MAP.get(settings.XML_DUMP_FORMAT))
         action = request.query_params.get("action")
         if action not in [None, "download"]:
             raise serializers.ValidationError(
                 "Please specify a correct 'action' for the request")
 
         file_path = os.path.join(db_task.get_task_dirname(),
-            filename + ".{}.{}.".format(username, timestamp) + "xml")
+            filename + ".{}.{}.".format(username, timestamp) + file_ext)
 
         rq_id = "{}@/api/v1/tasks/{}/annotations/{}".format(username, pk, filename)
         rq_job = queue.fetch_job(rq_id)
@@ -289,7 +287,7 @@ class TaskViewSet(auth.TaskGetQuerySetMixin, viewsets.ModelViewSet):
 
         rq_job = queue.enqueue_call(func=annotation.dump_task_data,
             args=(pk, request.user, file_path, request.scheme,
-                request.get_host(), request.query_params),
+                request.get_host(), request.query_params, fmt),
             job_id=rq_id)
         rq_job.meta["file_path"] = file_path
         rq_job.save_meta()

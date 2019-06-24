@@ -17,6 +17,12 @@
 
 'use strict';
 
+
+const XML_DUMP_FORMAT = 'o_xml';
+const VIRTUAL_CAMERA_JSON_DUMP_FORMAT = 'vc_json';
+const TIMESTAMPS_DUMP_FORMAT = 'tsp';
+
+
 class TaskView {
     constructor(details, ondelete, onupdate) {
         this.init(details);
@@ -208,7 +214,7 @@ class TaskView {
                 const fileReader = new FileReader();
                 fileReader.onload = (e) => {
                     onload.call(this, overlay, e.target.result);
-                }
+                };
                 fileReader.readAsText(file);
             }
         }).click();
@@ -217,7 +223,29 @@ class TaskView {
     async _dump(button) {
         button.disabled = true;
         try {
-            await dumpAnnotationRequest(this._id, this._name);
+            await dumpAnnotationRequest(this._id, this._name, XML_DUMP_FORMAT);
+        } catch (error) {
+            showMessage(error.message);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async _dumpJSON(button) {
+        button.disabled = true;
+        try {
+            await dumpAnnotationRequest(this._id, this._name, VIRTUAL_CAMERA_JSON_DUMP_FORMAT);
+        } catch (error) {
+            showMessage(error.message);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async _dumpTimestamps(button) {
+        button.disabled = true;
+        try {
+            await dumpAnnotationRequest(this._id, this._name, TIMESTAMPS_DUMP_FORMAT);
         } catch (error) {
             showMessage(error.message);
         } finally {
@@ -303,6 +331,12 @@ class TaskView {
         const buttonsContainer = $(`<div class="dashboardButtonsUI"> </div>`).appendTo(this._UI);
         $('<button class="regular dashboardButtonUI"> Dump Annotation </button>').on('click', (e) => {
             self._dump(e.target);
+        }).appendTo(buttonsContainer);
+        $('<button class="regular dashboardButtonUI"> Dump JSON </button>').on('click', (e) => {
+            self._dumpJSON(e.target);
+        }).appendTo(buttonsContainer);
+        $('<button class="regular dashboardButtonUI"> Dump Timestamps </button>').on('click', (e) => {
+            self._dumpTimestamps(e.target);
         }).appendTo(buttonsContainer);
 
         $('<button class="regular dashboardButtonUI"> Upload Annotation </button>').on('click', () => {

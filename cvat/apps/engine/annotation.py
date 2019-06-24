@@ -23,6 +23,19 @@ from . import models
 from .task import get_image_meta_cache
 from .log import slogger
 from . import serializers
+from cvat.apps.engine.services import convert_dump_to_vc_json, convert_dump_to_timestamps
+
+
+def get_format_converter(format_):
+    if format_ is None or format_ == settings.XML_DUMP_FORMAT:
+        return None
+    elif format_ == settings.VIRTUAL_CAMERA_JSON_DUMP_FORMAT:
+        return convert_dump_to_vc_json
+    elif format_ == settings.TIMESTAMPS_DUMP_FORMAT:
+        return convert_dump_to_timestamps
+    else:
+        raise Exception('Converting to {format} does not supporting!'.format(format=format_))
+
 
 class PatchAction(str, Enum):
     CREATE = "create"
@@ -108,7 +121,7 @@ def delete_task_data(pk, user):
     annotation.delete()
 
 
-def dump_task_data(pk, user, file_path, scheme, host, query_params):
+def dump_task_data(pk, user, file_path, scheme, host, query_params, fmt):
     # For big tasks dump function may run for a long time and
     # we dont need to acquire lock after _AnnotationForTask instance
     # has been initialized from DB.
@@ -118,7 +131,7 @@ def dump_task_data(pk, user, file_path, scheme, host, query_params):
         annotation = TaskAnnotation(pk, user)
         annotation.init_from_db()
 
-    annotation.dump(file_path, scheme, host, query_params)
+    annotation.dump(file_path, scheme, host, query_params, fmt)
 
 ######
 
@@ -1234,12 +1247,12 @@ class TaskAnnotation:
             shape["points"][x] = im_w - shape["points"][x]
             shape["points"][y] = im_w - shape["points"][y]
 
-    def dump(self, file_path, scheme, host, query_params):
+    def dump(self, file_path, scheme, host, query_params, fmt):
         db_task = self.db_task
         db_segments = db_task.segment_set.all().prefetch_related('job_set')
         db_labels = db_task.label_set.all().prefetch_related('attributespec_set')
-        db_label_by_id = {db_label.id:db_label for db_label in db_labels}
-        db_attribute_by_id = {db_attribute.id:db_attribute
+        db_label_by_id = {db_label.id: db_label for db_label in db_labels}
+        db_attribute_by_id = {db_attribute.id: db_attribute
             for db_label in db_labels
             for db_attribute in db_label.attributespec_set.all()}
         im_meta_data = get_image_meta_cache(db_task)['original_size']
@@ -1471,3 +1484,7 @@ class TaskAnnotation:
                             raise NotImplementedError("unknown shape type")
                     dumper.close_track()
             dumper.close_root()
+
+        converter = get_format_converter(fmt)
+        if converter is not None:
+            converter(file_path, db_task.get_upload_dirname())

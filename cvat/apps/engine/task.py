@@ -374,3 +374,37 @@ def _create_thread(tid, data):
     slogger.glob.info("Founded frames {} for task #{}".format(db_task.size, tid))
     _save_task_to_db(db_task)
 
+
+def find_video_in_dir(dir_):
+    for root, _, files in os.walk(dir_):
+        fullnames = map(lambda f: os.path.join(root, f), files)
+        videos = list(filter(lambda x: _get_mime(x) == 'video', fullnames))
+        if len(videos):
+            return videos[0]
+
+
+def _find_and_extract_video(upload_dir, output_dir, db_task, compress_quality, flip_flag, job):
+    video = find_video_in_dir(upload_dir)
+    if video:
+        job.meta['status'] = 'Video is being extracted..'
+        job.save_meta()
+        extractor = _FrameExtractor(video, compress_quality, flip_flag)
+        for frame, image_orig_path in enumerate(extractor):
+            image_dest_path = _get_frame_path(frame, output_dir)
+            db_task.size += 1
+            dirname = os.path.dirname(image_dest_path)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+            shutil.copyfile(image_orig_path, image_dest_path)
+    else:
+        raise Exception("Video files were not found")
+
+
+def _get_frame_path(frame, base_dir):
+    d1 = str(frame // 10000)
+    d2 = str(frame // 100)
+    path = os.path.join(d1, d2, str(frame) + '.jpg')
+    if base_dir:
+        path = os.path.join(base_dir, path)
+
+    return path

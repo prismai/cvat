@@ -127,10 +127,10 @@ function showOverlay(message) {
     return overlayWindow[0];
 }
 
-async function dumpAnnotationRequest(tid, taskName) {
+async function dumpAnnotationRequest(tid, taskName, convertTo) {
     const name = encodeURIComponent(`${tid}_${taskName}`);
     return new Promise((resolve, reject) => {
-        const url = `/api/v1/tasks/${tid}/annotations/${name}`;
+        const url = `/api/v1/tasks/${tid}/annotations/${name}?convertTo=${convertTo}`;
         async function request() {
             $.get(url)
                 .done((...args) => {
@@ -138,7 +138,7 @@ async function dumpAnnotationRequest(tid, taskName) {
                         setTimeout(request, 3000);
                     } else {
                         const a = document.createElement('a');
-                        a.href = `${url}?action=download`;
+                        a.href = `${url}&action=download`;
                         document.body.appendChild(a);
                         a.click();
                         a.remove();

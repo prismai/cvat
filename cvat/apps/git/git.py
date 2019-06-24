@@ -4,6 +4,7 @@
 
 from django.db import transaction
 from django.utils import timezone
+from django.conf import settings
 
 from cvat.apps.engine.log import slogger
 from cvat.apps.engine.models import Task, Job, User
@@ -270,6 +271,7 @@ class Git:
             scheme=scheme,
             host=host,
             query_params={},
+            fmt=settings.XML_DUMP_FORMAT,
         )
 
         ext = os.path.splitext(self._path)[1]
