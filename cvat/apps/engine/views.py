@@ -405,13 +405,6 @@ class JobViewSet(viewsets.GenericViewSet,
                     return Response(data=str(e), status=status.HTTP_400_BAD_REQUEST)
                 return Response(data)
 
-    @action(detail=True, methods=['POST'], serializer_class=None)
-    def stats(self, request, pk):
-        stats = request.data.get('stats', None)
-        transaction.on_commit(lambda: save_job_stats(pk, request.user.id, stats))
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class UserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     mixins.RetrieveModelMixin, mixins.UpdateModelMixin):

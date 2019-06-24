@@ -118,24 +118,11 @@ class AnnotationSaverModel extends Listener {
     }
 
     async _stat() {
-        const totalStat = this._shapeCollection.collectStatistic()[1];
+        const totalStat = this._shapeCollection.collectStatistic()[1],
+            trackedTime = Logger.getWorkingTime(),
+            stats = {manually: totalStat.manually, interpolated: totalStat.interpolated};
 
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: `/api/v1/jobs/${window.cvat.job.id}/stats`,
-                type: 'POST',
-                data: JSON.stringify({
-                    stats: totalStat
-                }),
-                contentType: 'application/json',
-            }).done(() => {
-                resolve();
-            }).fail((errorData) => {
-                const message = `Could not send stat. Code: ${errorData.status}. `
-                    + `Message: ${errorData.responseText || errorData.statusText}`;
-                reject(new Error(message));
-            });
-        });
+        statsController.processInterval(stats, trackedTime);
     }
 
     _split(exported) {

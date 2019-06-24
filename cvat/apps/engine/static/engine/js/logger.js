@@ -495,6 +495,13 @@ var Logger = {
         return this._logger.getLogs();
     },
 
+    getWorkingTime: function() {
+        if (this._logger.isInitialized) {
+            return this._logger.getWorkingTime()
+        }
+        return null
+    },
+
     /** Logger.updateUserActivityTimer method updates internal timer for working
      * time calculation logic
      * @static

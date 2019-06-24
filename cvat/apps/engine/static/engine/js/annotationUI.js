@@ -276,6 +276,25 @@ function setupHelpWindow(shortkeys) {
     }
 }
 
+function setupStatisticsRecording(job, shapeCollectionModel) {
+    function getStats() {
+        const totalStat = shapeCollectionModel.collectStatistic()[1];
+        return {manually: totalStat.manually, interpolated: totalStat.interpolated};
+    }
+
+    function processInterval() {
+        const stats = getStats();
+        statsController.processInterval(stats)
+    }
+
+    const stats = getStats();
+    statsController.init(job.jobid, stats);
+    setInterval(processInterval, 10 * 1000 * 60);
+
+    $(window).blur(processInterval);
+    $(window).focus(() => statsController.resetInterval())
+
+}
 
 function setupSettingsWindow() {
     const closeSettingsButton = $('#closeSettignsButton');
@@ -619,6 +638,7 @@ function buildAnnotationUI(jobData, taskData, imageMetaData, annotationData, loa
     const { shortkeys } = window.cvat.config;
 
     setupHelpWindow(shortkeys);
+    setupStatisticsRecording({jobid: jobData.id}, shapeCollectionModel);
     setupSettingsWindow();
     setupMenu(jobData, taskData, shapeCollectionModel,
         annotationParser, aamModel, playerModel, historyModel);

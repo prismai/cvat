@@ -20,7 +20,7 @@ class ReactiveStats {
     }
 
     init() {
-        $.get('api/get_stats/', (data) => {
+        $.get('api/get/', (data) => {
             this._data = data || [];
             this.buildOperatorsTiles()
         })
@@ -37,12 +37,29 @@ class ReactiveStats {
         })
     }
 
+    static secondsToHumanReadable(seconds) {
+        let sec_num = parseInt(seconds, 10);
+        let hours = Math.floor(sec_num / 3600);
+        let minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+
+        if (hours < 10) {
+            hours = "0" + hours;
+        }
+        if (minutes < 10) {
+            minutes = "0" + minutes;
+        }
+        return `${hours}:${minutes}`
+    }
+
     createTile(operator, tileData) {
         let tileContainer = $('<div>', {
             class: 'col-md-12'
         })
             .data('operator', operator)
-            .append($('<p>', {text: tileData.name, class: 'operator-name'}));
+            .append($('<p>', {
+                text: tileData.full_name || tileData.name,
+                class: 'operator-name'
+            }));
         let tile = $('<div>', {
             id: `operator-tile-${operator}`,
             class: 'row operator-tile',
@@ -51,13 +68,15 @@ class ReactiveStats {
         return tile
     }
 
-    createTableRow(rowData) {
-        let row = $('<tr>')
-            .append($('<th>', {scope: 'row', text: rowData.date}))
-            .append($('<td>', {text: rowData.hours}))
-            .append($('<td>', {text: rowData.boxes_count}))
-            .append($('<td>', {text: rowData.ratio}));
-        this._tableBody.append(row)
+    createTableRow(row) {
+        let el = $('<tr>');
+        row.spanRows.forEach((item) => el.append($('<th>', {rowspan: item.count, text: item.text})));
+        el
+            .append($('<th>', {text: row.data.job}))
+            .append($('<td>', {text: ReactiveStats.secondsToHumanReadable(row.data.time)}))
+            .append($('<td>', {text: row.data.boxes_count}))
+            .append($('<td>', {text: row.data.ratio}));
+        this._tableBody.append(el)
     }
 
 
@@ -71,6 +90,21 @@ class ReactiveStats {
         }
         this._currentAnnotator = operator;
         this._operatorsTilesCollection[operator].addClass('selected');
-        this._data[operator].stats.forEach((item) => this.createTableRow(item))
+        const stats = this._data[operator].stats;
+        Object.keys(stats).sort((a, b) => new Date(b) - new Date(a)).forEach((key) => {
+            stats[key].forEach((item, i) => {
+                let row = {data: item, spanRows: []};
+                if (i === 0) {
+                    const totalBoxes = stats[key].map(item => item['boxes_count']).reduce((a, b) => a + b, 0);
+                    row.spanRows = [
+                        {count: stats[key].length, text: key},
+                        {count: stats[key].length, text: totalBoxes}
+                    ];
+                    this.createTableRow(row)
+                } else {
+                    this.createTableRow(row)
+                }
+            })
+        })
     }
 }

@@ -2,6 +2,11 @@
 #
 # SPDX-License-Identifier: MIT
 
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
+
 from .base import *
 
 DEBUG = False
@@ -36,3 +41,12 @@ DATABASES = {
 # Some HTTP security settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+
+
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    integrations=[DjangoIntegration()],
+    environment=os.getenv('DJANGO_CONFIGURATION')
+)
