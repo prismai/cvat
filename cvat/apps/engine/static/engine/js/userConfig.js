@@ -136,18 +136,6 @@ class Config {
                 description: 'Toggle outside'
             },
 
-            toggle_key_frame: {
-                value: "a",
-                view_value: "A",
-                description: "Toggle key frame"
-            },
-
-            toggle_outside: {
-                value: "z",
-                view_value: "Z",
-                description: "Toggle outside"
-            },
-
             next_frame: {
                 value: 'f',
                 view_value: 'F',
@@ -332,12 +320,6 @@ class Config {
                 value: ['alt+,'],
                 view_value: 'Alt + <',
                 description: 'switch previous default shape type',
-            },
-
-            activateMovingMode: {
-                value: 'shift',
-                view_value: 'Shift',
-                description: 'activate moving mode'
             }
         };
 
