@@ -311,7 +311,6 @@ class TaskView {
     }
 
     render(baseURL) {
-        self = this;
         this._UI = $(`<div tid=${this._task.id} class="dashboardItem"> </div>`).append(
             $(`<center class="dashboardTitleWrapper">
                 <label class="semiBold h1 selectable"> ${this._task.name} </label>
@@ -332,10 +331,10 @@ class TaskView {
             this._dump(e.target);
         }).appendTo(buttonsContainer);
         $('<button class="regular dashboardButtonUI"> Dump JSON </button>').on('click', (e) => {
-            self._dumpJSON(e.target);
+            this._dumpJSON(e.target);
         }).appendTo(buttonsContainer);
         $('<button class="regular dashboardButtonUI"> Dump Timestamps </button>').on('click', (e) => {
-            self._dumpTimestamps(e.target);
+            this._dumpTimestamps(e.target);
         }).appendTo(buttonsContainer);
 
         $('<button class="regular dashboardButtonUI"> Upload Annotation </button>').on('click', () => {
@@ -358,8 +357,8 @@ class TaskView {
 
         const jobsContainer = $(`<table class="dashboardJobList regular">`);
         for (let job of this._task.jobs) {
-            let availableAssignees = self._renderAvailableAssignees(job),
-                estimatedCompletionDate = self._customDateFormatter(job.estimated_completion_date);
+            let availableAssignees = this._renderAvailableAssignees(job),
+                estimatedCompletionDate = this._customDateFormatter(job.estimated_completion_date);
 
             let jobContainer = $(`
                 <tr class="job-block">
@@ -391,7 +390,7 @@ class TaskView {
             jobContainer.find('.job-form-field').on('change', (e) => {
                 let el = $(e.currentTarget),
                     form = $(`#${el.attr('form')}`);
-                self._updateJobDetails(form);
+                this._updateJobDetails(form);
             });
             jobsContainer.append(jobContainer);
         }
