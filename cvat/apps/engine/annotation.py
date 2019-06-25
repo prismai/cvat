@@ -1128,8 +1128,7 @@ class TrackManager(ObjectManager):
         prev_shape = {}
         for shape in track["shapes"]:
             if prev_shape:
-                # TODO: check WTF!!1
-                # assert shape["frame"] > curr_frame
+                assert shape["frame"] > curr_frame
                 for attr in prev_shape["attributes"]:
                     if attr["spec_id"] not in map(lambda el: el["spec_id"], shape["attributes"]):
                         shape["attributes"].append(copy.deepcopy(attr))
