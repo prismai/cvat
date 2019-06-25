@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0019_frame_selection'),
+        ('engine', '0020_remove_task_flipped'),
     ]
 
     operations = [
