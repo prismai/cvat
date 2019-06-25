@@ -1128,7 +1128,8 @@ class TrackManager(ObjectManager):
         prev_shape = {}
         for shape in track["shapes"]:
             if prev_shape:
-                assert shape["frame"] > curr_frame
+                # TODO: check WTF!!1
+                # assert shape["frame"] > curr_frame
                 for attr in prev_shape["attributes"]:
                     if attr["spec_id"] not in map(lambda el: el["spec_id"], shape["attributes"]):
                         shape["attributes"].append(copy.deepcopy(attr))
@@ -1265,7 +1266,6 @@ class TaskAnnotation:
                 ("mode", db_task.mode),
                 ("overlap", str(db_task.overlap)),
                 ("bugtracker", db_task.bug_tracker),
-                ("flipped", str(db_task.flipped)),
                 ("created", str(timezone.localtime(db_task.created_date))),
                 ("updated", str(timezone.localtime(db_task.updated_date))),
                 ("start_frame", str(db_task.start_frame)),
@@ -1345,9 +1345,6 @@ class TaskAnnotation:
                     ]))
 
                     for shape in shapes.get(frame, []):
-                        if db_task.flipped:
-                            self._flip_shape(shape, im_w, im_h)
-
                         db_label = db_label_by_id[shape["label_id"]]
 
                         dump_data = OrderedDict([
@@ -1428,8 +1425,6 @@ class TaskAnnotation:
                     dumper.open_track(dump_data)
                     for shape in TrackManager.get_interpolated_shapes(
                         track, 0, db_task.size):
-                        if db_task.flipped:
-                            self._flip_shape(shape, im_w, im_h)
 
                         dump_data = OrderedDict([
                             ("frame", str(db_task.start_frame + shape["frame"] * db_task.get_frame_step())),
