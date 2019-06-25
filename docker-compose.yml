@@ -70,18 +70,6 @@ services:
     env_file:
     - .env
 
-
-  cvat_db_backup:
-    image: schickling/postgres-backup-s3
-    links:
-    - cvat_db
-    environment:
-      POSTGRES_HOST: cvat_db
-      POSTGRES_DATABASE: cvat
-      POSTGRES_USER: root
-    env_file:
-    - .env
-
 volumes:
   cvat_db:
   cvat_data:
