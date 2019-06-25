@@ -1,6 +1,6 @@
-from django.contrib.auth import get_user_model
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
+from django.contrib.auth import get_user_model
 
 from cvat.apps.authentication.decorators import login_required
 from cvat.apps.stats.services import collect_annotators_stats, save_job_stats

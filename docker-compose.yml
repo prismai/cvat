@@ -9,6 +9,10 @@ services:
   cvat_db:
     container_name: cvat_db
     image: postgres:10.3-alpine
+    networks:
+      default:
+        aliases:
+          - db
     restart: always
     environment:
       POSTGRES_USER: root
@@ -19,6 +23,10 @@ services:
   cvat_redis:
     container_name: cvat_redis
     image: redis:4.0.5-alpine
+    networks:
+      default:
+        aliases:
+          - redis
     restart: always
 
   cvat:
@@ -36,6 +44,7 @@ services:
         http_proxy:
         https_proxy:
         no_proxy:
+        socks_proxy:
         TF_ANNOTATION: "no"
         USER: "django"
         DJANGO_CONFIGURATION: "production"
@@ -44,11 +53,22 @@ services:
       - .env
     environment:
       DJANGO_MODWSGI_EXTRA_ARGS: ""
-      DJANGO_LOG_SERVER_URL: ""
     volumes:
       - cvat_data:/home/django/data
       - cvat_keys:/home/django/keys
       - cvat_logs:/home/django/logs
+      - cvat_models:/home/django/models
+
+  cvat_db_backup:
+    image: schickling/postgres-backup-s3
+    links:
+    - cvat_db
+    environment:
+      POSTGRES_HOST: cvat_db
+      POSTGRES_DATABASE: cvat
+      POSTGRES_USER: root
+    env_file:
+    - .env
 
 
   cvat_db_backup:
@@ -67,3 +87,4 @@ volumes:
   cvat_data:
   cvat_keys:
   cvat_logs:
+  cvat_models:

@@ -6,8 +6,8 @@ from django.db import models, IntegrityError
 from django.db.models import F
 from django.db.models.functions import Cast
 
-from cvat.apps.engine.logging import job_logger
 from cvat.apps.stats.models import JobStatsSave
+from cvat.apps.engine.log import slogger
 
 User = get_user_model()
 
@@ -29,12 +29,12 @@ def save_job_stats(job_id, annotator_id, data: dict):
         'annotated_manually': data.get('manually'),
         'total_annotated_manually': data.get('totalManually'),
         'total_interpolated': data.get('totalInterpolated'),
-        'system_tracked_time': system_tracked_time
+        'system_tracked_time': system_tracked_time,
     }
     try:
         save = JobStatsSave.objects.create(**to_save)
     except IntegrityError:
-        job_logger[job_id].error('error saving job stats interval {} - {}'.format(start, end))
+        slogger[job_id].error('error saving job stats interval {} - {}'.format(start, end))
         return None
     return save
 

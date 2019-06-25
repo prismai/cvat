@@ -37,6 +37,11 @@ div.selected {
     overflow: auto;
 }
 
+th {
+    vertical-align: middle;
+}
+
 th[rowspan] {
     vertical-align: middle;
 }
+

@@ -1,4 +1,3 @@
-
 # Copyright (C) 2018 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
@@ -8,12 +7,11 @@ from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
-
 INSTALLED_APPS += [
     'django_extensions',
 ]
+
+ALLOWED_HOSTS.append('testserver')
 
 # Django-sendfile:
 # https://github.com/johnsensible/django-sendfile

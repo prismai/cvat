@@ -4,7 +4,20 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* exported PolyShapeModel buildShapeModel buildShapeController buildShapeView */
+/* exported PolyShapeModel buildShapeModel buildShapeController buildShapeView PolyShapeView */
+
+/* global
+    AAMUndefinedKeyword:false
+    blurAllElements:false
+    drawBoxSize:false
+    Listener:false
+    Logger:false
+    Mousetrap:false
+    ShapeCollectionView:false
+    SVG:false
+    LabelsInfo:false
+*/
+
 "use strict";
 
 const STROKE_WIDTH = 2.5;
@@ -14,11 +27,13 @@ const AREA_TRESHOLD = 9;
 const TEXT_MARGIN = 10;
 
 /******************************** SHAPE MODELS  ********************************/
+
 class ShapeModel extends Listener {
-    constructor(data, positions, type, id, color) {
+    constructor(data, positions, type, clientID, color) {
         super('onShapeUpdate', () => this );
-        this._id = id;
-        this._groupId = data.group_id;
+        this._serverID = data.id;
+        this._id = clientID;
+        this._groupId = data.group || 0;
         this._type = type;
         this._color = color;
         this._label = data.label_id;
@@ -30,8 +45,7 @@ class ShapeModel extends Listener {
         this._merging = false;
         this._active = false;
         this._selected = false;
-        this._activeAAM = false;
-        this._activeAAMAttributeId = null;
+        this._activeAttributeId = null;
         this._merge = false;
         this._hiddenShape = false;
         this._hiddenText = true;
@@ -58,30 +72,28 @@ class ShapeModel extends Listener {
             if (attrInfo.mutable) {
                 this._attributes.mutable[this._frame] = this._attributes.mutable[this._frame] || {};
                 this._attributes.mutable[this._frame][attrId] = attrInfo.values[0];
-            }
-            else {
+            } else {
                 this._attributes.immutable[attrId] = attrInfo.values[0];
             }
         }
 
         for (let attrId in attributes) {
             let attrInfo = labelsInfo.attrInfo(attrId);
+            const labelValue = LabelsInfo.normalize(attrInfo.type, attributes[attrId]);
             if (attrInfo.mutable) {
-                this._attributes.mutable[this._frame][attrId] = labelsInfo.strToValues(attrInfo.type, attributes[attrId])[0];
-            }
-            else {
-                this._attributes.immutable[attrId] = labelsInfo.strToValues(attrInfo.type, attributes[attrId])[0];
+                this._attributes.mutable[this._frame][attrId] = labelValue;
+            } else {
+                this._attributes.immutable[attrId] = labelValue;
             }
         }
 
-        for (let pos of positions) {
-            let frame = pos.frame;
-            let attributes = pos.attributes;
-            for (let attr of attributes) {
-                let attrInfo = labelsInfo.attrInfo(attr.id);
+        for (const pos of positions) {
+            for (const attr of pos.attributes) {
+                const attrInfo = labelsInfo.attrInfo(attr.id);
                 if (attrInfo.mutable) {
-                    this._attributes.mutable[frame] = this._attributes.mutable[frame] || {};
-                    this._attributes.mutable[frame][attr.id] = labelsInfo.strToValues(attrInfo.type, attr.value)[0];
+                    this._attributes.mutable[pos.frame] = this._attributes.mutable[pos.frame] || {};
+                    const labelValue = LabelsInfo.normalize(attrInfo.type, attr.value);
+                    this._attributes.mutable[pos.frame][attr.id] = labelValue;
                 }
             }
         }
@@ -195,6 +207,17 @@ class ShapeModel extends Listener {
         return counter;
     }
 
+    notify(updateReason) {
+        let oldReason = this._updateReason;
+        this._updateReason = updateReason;
+        try {
+            Listener.prototype.notify.call(this);
+        }
+        finally {
+            this._updateReason = oldReason;
+        }
+    }
+
     collectStatistic() {
         let collectObj = {};
         collectObj.type = this._type.split('_')[1];
@@ -229,8 +252,7 @@ class ShapeModel extends Listener {
         window.cvat.addAction('Change Attribute', () => {
             if (typeof(oldAttr) === 'undefined') {
                 delete this._attributes.mutable[frame][attrId];
-                this._updateReason = 'attributes';
-                this.notify();
+                this.notify('attributes');
             }
             else {
                 this.updateAttribute(frame, attrId, oldAttr);
@@ -242,15 +264,13 @@ class ShapeModel extends Listener {
 
         if (attrInfo.mutable) {
             this._attributes.mutable[frame] = this._attributes.mutable[frame]|| {};
-            this._attributes.mutable[frame][attrId] = labelsInfo.strToValues(attrInfo.type, value)[0];
+            this._attributes.mutable[frame][attrId] = LabelsInfo.normalize(attrInfo.type, value);
             this._setupKeyFrames();
-        }
-        else {
-            this._attributes.immutable[attrId] = labelsInfo.strToValues(attrInfo.type, value)[0];
+        } else {
+            this._attributes.immutable[attrId] = LabelsInfo.normalize(attrInfo.type, value);
         }
 
-        this._updateReason = 'attributes';
-        this.notify();
+        this.notify('attributes');
     }
 
     changeLabel(labelId) {
@@ -263,8 +283,7 @@ class ShapeModel extends Listener {
             this._label = +labelId;
             this._importAttributes([], []);
             this._setupKeyFrames();
-            this._updateReason = 'changelabel';
-            this.notify();
+            this.notify('changelabel');
         }
         else {
             throw Error(`Unknown label id value found: ${labelId}`);
@@ -273,8 +292,7 @@ class ShapeModel extends Listener {
 
     changeColor(color) {
         this._color = color;
-        this._updateReason = 'color';
-        this.notify();
+        this.notify('color');
     }
 
     interpolate(frame) {
@@ -297,14 +315,12 @@ class ShapeModel extends Listener {
         // End of undo/redo code
 
         this.updatePosition(frame, position, true);
-        this._updateReason = 'occluded';
-        this.notify();
+        this.notify('occluded');
     }
 
     switchLock() {
         this._locked = !this._locked;
-        this._updateReason = 'lock';
-        this.notify();
+        this.notify('lock');
     }
 
     switchHide() {
@@ -321,13 +337,12 @@ class ShapeModel extends Listener {
             this._hiddenText = false;
         }
 
-        this._updateReason = 'hidden';
-        this.notify();
+        this.notify('hidden');
     }
 
     switchOutside(frame) {
-        // Only for interpolation boxes
-        if (this._type != 'interpolation_box') {
+        // Only for interpolation shapes
+        if (this._type.split('_')[0] !== 'interpolation') {
             return;
         }
 
@@ -346,8 +361,7 @@ class ShapeModel extends Listener {
                     delete this._attributes.mutable[frame];
                 }
 
-                this._updateReason = 'outside';
-                this.notify();
+                this.notify('outside');
             }
             else {
                 this.switchOutside(frame);
@@ -365,24 +379,27 @@ class ShapeModel extends Listener {
         if (frame < this._frame) {
             if (this._frame in this._attributes.mutable) {
                 this._attributes.mutable[frame] = this._attributes.mutable[this._frame];
-                delete(this._attributes.mutable[this._frame]);
+                delete (this._attributes.mutable[this._frame]);
             }
             this._frame = frame;
         }
 
-        this._updateReason = 'outside';
-        this.notify();
+        this.notify('outside');
     }
 
     switchKeyFrame(frame) {
-        // Only for interpolation boxes
-        if (this._type != 'interpolation_box') {
+        // Only for interpolation shapes
+        if (this._type.split('_')[0] !== 'interpolation') {
             return;
         }
 
         // Undo/redo code
+        const oldPos = Object.assign({}, this._positions[frame]);
         window.cvat.addAction('Change Keyframe', () => {
             this.switchKeyFrame(frame);
+            if (frame in this._positions) {
+                this.updatePosition(frame, oldPos);
+            }
         }, () => {
             this.switchKeyFrame(frame);
         }, frame);
@@ -394,30 +411,28 @@ class ShapeModel extends Listener {
                 this._frame = Object.keys(this._positions).map((el) => +el).sort((a,b) => a - b)[1];
                 if (frame in this._attributes.mutable) {
                     this._attributes.mutable[this._frame] = this._attributes.mutable[frame];
-                    delete(this._attributes.mutable[frame]);
+                    delete (this._attributes.mutable[frame]);
                 }
             }
-            delete(this._positions[frame]);
-        }
-        else {
+            delete (this._positions[frame]);
+        } else {
             let position = this._interpolatePosition(frame);
             this.updatePosition(frame, position, true);
 
             if (frame < this._frame) {
                 if (this._frame in this._attributes.mutable) {
                     this._attributes.mutable[frame] = this._attributes.mutable[this._frame];
-                    delete(this._attributes.mutable[this._frame]);
+                    delete (this._attributes.mutable[this._frame]);
                 }
                 this._frame = frame;
             }
         }
-        this._updateReason = 'keyframe';
-        this.notify();
+
+        this.notify('keyframe');
     }
 
     click() {
-        this._updateReason = 'click';
-        this.notify();
+        this.notify('click');
     }
 
     prevKeyFrame() {
@@ -436,24 +451,17 @@ class ShapeModel extends Listener {
         return frame in this._positions;
     }
 
-    aamAttributeFocus() {
-        this._updateReason = 'attributeFocus';
-        this.notify();
-    }
-
     select() {
         if (!this._selected) {
             this._selected = true;
-            this._updateReason = 'selection';
-            this.notify();
+            this.notify('selection');
         }
     }
 
     deselect() {
         if (this._selected) {
             this._selected = false;
-            this._updateReason = 'selection';
-            this.notify();
+            this.notify('selection');
         }
     }
 
@@ -480,18 +488,18 @@ class ShapeModel extends Listener {
             let position = this._interpolatePosition(frame);
             position.z_order = value;
             this.updatePosition(frame, position, true);
-            this._updateReason = 'z_order';
-            this.notify();
+            this.notify('z_order');
         }
     }
 
     set removed(value) {
         if (value) {
             this._active = false;
+            this._serverID = undefined;
         }
+
         this._removed = value;
-        this._updateReason = 'remove';
-        this.notify();
+        this.notify('remove');
     }
 
     get removed() {
@@ -512,9 +520,8 @@ class ShapeModel extends Listener {
 
     set active(value) {
         this._active = value;
-        if (!this._removed) {
-            this._updateReason = 'activation';
-            this.notify();
+        if (!this._removed && !['drag', 'resize'].includes(window.cvat.mode)) {
+            this.notify('activation');
         }
     }
 
@@ -522,24 +529,18 @@ class ShapeModel extends Listener {
         return this._active;
     }
 
-    set activeAAM(active) {
-        this._activeAAM = active.shape;
-        this._activeAAMAttributeId = active.attribute;
-        this._updateReason = 'activeAAM';
-        this.notify();
+    set activeAttribute(value) {
+        this._activeAttributeId = value;
+        this.notify('activeAttribute');
     }
 
-    get activeAAM() {
-        return {
-            shape: this._activeAAM,
-            attributeId: this._activeAAMAttributeId
-        };
+    get activeAttribute() {
+        return this._activeAttributeId;
     }
 
     set merge(value) {
         this._merge = value;
-        this._updateReason = 'merge';
-        this.notify();
+        this.notify('merge');
     }
 
     get merge() {
@@ -548,8 +549,7 @@ class ShapeModel extends Listener {
 
     set groupping(value) {
         this._groupping = value;
-        this._updateReason = 'groupping';
-        this.notify();
+        this.notify('groupping');
     }
 
     get groupping() {
@@ -570,6 +570,18 @@ class ShapeModel extends Listener {
 
     get id() {
         return this._id;
+    }
+
+    set id(value) {
+        this._id = value;
+    }
+
+    get serverID() {
+        return this._serverID;
+    }
+
+    set serverID(value) {
+        this._serverID = value;
     }
 
     get frame() {
@@ -599,8 +611,8 @@ class ShapeModel extends Listener {
 
 
 class BoxModel extends ShapeModel {
-    constructor(data, type, id, color) {
-        super(data, data.shapes || [], type, id, color);
+    constructor(data, type, clientID, color) {
+        super(data, data.shapes || [], type, clientID, color);
         this._positions = BoxModel.importPositions.call(this, data.shapes || data);
         this._setupKeyFrames();
     }
@@ -610,7 +622,7 @@ class BoxModel extends ShapeModel {
             return Object.assign({},
                 this._positions[this._frame],
                 {
-                    outside: false
+                    outside: this._frame != frame
                 }
             );
         }
@@ -683,8 +695,7 @@ class BoxModel extends ShapeModel {
                 window.cvat.addAction('Change Position', () => {
                     if (!Object.keys(oldPos).length) {
                         delete this._positions[frame];
-                        this._updateReason = 'position';
-                        this.notify();
+                        this.notify('position');
                     }
                     else {
                         this.updatePosition(frame, oldPos, false);
@@ -706,8 +717,7 @@ class BoxModel extends ShapeModel {
         }
 
         if (!silent) {
-            this._updateReason = 'position';
-            this.notify();
+            this.notify('position');
         }
     }
 
@@ -744,67 +754,66 @@ class BoxModel extends ShapeModel {
     }
 
     export() {
-        let immutableAttributes = [];
-        for (let attrId in this._attributes.immutable) {
-            immutableAttributes.push({
-                id: +attrId,
-                value: this._attributes.immutable[attrId],
+        const objectAttributes = [];
+        for (let attributeId in this._attributes.immutable) {
+            objectAttributes.push({
+                id: +attributeId,
+                value: String(this._attributes.immutable[attributeId]),
             });
         }
 
         if (this._type === 'annotation_box') {
             if (this._frame in this._attributes.mutable) {
                 for (let attrId in this._attributes.mutable[this._frame]) {
-                    immutableAttributes.push({
+                    objectAttributes.push({
                         id: +attrId,
-                        value: this._attributes.mutable[this._frame][attrId],
+                        value: String(this._attributes.mutable[this._frame][attrId]),
                     });
                 }
             }
 
-            return Object.assign({}, this._positions[this._frame], {
-                attributes: immutableAttributes,
+            return Object.assign({}, {
+                id: this._serverID,
+                attributes: objectAttributes,
                 label_id: this._label,
-                group_id: this._groupId,
+                group: this._groupId,
                 frame: this._frame,
-            });
+                type: 'box',
+            }, this._positions[this._frame]);
         }
         else {
-            let boxPath = {
+            const track = {
+                id: this._serverID,
                 label_id: this._label,
-                group_id: this._groupId,
+                group: this._groupId,
                 frame: this._frame,
-                attributes: immutableAttributes,
+                attributes: objectAttributes,
                 shapes: [],
             };
 
             for (let frame in this._positions) {
-                let mutableAttributes = [];
+                const shapeAttributes = [];
                 if (frame in this._attributes.mutable) {
                     for (let attrId in this._attributes.mutable[frame]) {
-                        mutableAttributes.push({
+                        shapeAttributes.push({
                             id: +attrId,
-                            value: this._attributes.mutable[frame][attrId],
+                            value: String(this._attributes.mutable[frame][attrId]),
                         });
                     }
                 }
 
-                let position = Object.assign({}, this._positions[frame], {
-                    attributes: mutableAttributes,
+                track.shapes.push(Object.assign({}, {
                     frame: +frame,
-                });
-                boxPath.shapes.push(position);
+                    type: 'box',
+                    attributes: shapeAttributes,
+                }, this._positions[frame]));
             }
 
-            return boxPath;
+            return track;
         }
     }
 
     removePoint() {
-        // nothing do
-    }
-
-    clonePoint() {
         // nothing do
     }
 
@@ -866,24 +875,49 @@ class BoxModel extends ShapeModel {
 }
 
 class PolyShapeModel extends ShapeModel {
-    constructor(data, type, id, color) {
-        super(data, data.shapes || [], type, id, color);
+    constructor(data, type, clientID, color) {
+        super(data, data.shapes || [], type, clientID, color);
         this._positions = PolyShapeModel.importPositions.call(this, data.shapes || data);
         this._setupKeyFrames();
     }
 
-
     _interpolatePosition(frame) {
+        if (this._type.startsWith('annotation')) {
+            return Object.assign({},
+                this._positions[this._frame],
+                {
+                    outside: this._frame != frame
+                }
+            );
+        }
+
+        let [leftFrame, rightFrame] = this._neighboringFrames(frame);
         if (frame in this._positions) {
-            return Object.assign({}, this._positions[frame], {
-                outside: false
-            });
+            leftFrame = frame;
         }
-        else {
-            return {
-                outside: true
-            };
+
+        let leftPos = null;
+        let rightPos = null;
+
+        if (leftFrame != null) leftPos = this._positions[leftFrame];
+        if (rightFrame != null) rightPos = this._positions[rightFrame];
+
+        if (!leftPos) {
+            if (rightPos) {
+                return Object.assign({}, rightPos, {
+                    outside: true,
+                });
+            }
+            else {
+                return {
+                    outside: true
+                };
+            }
         }
+
+        return Object.assign({}, leftPos, {
+            outside: leftPos.outside || leftFrame !== frame,
+        });
     }
 
     updatePosition(frame, position, silent) {
@@ -898,6 +932,7 @@ class PolyShapeModel extends ShapeModel {
         for (let point of points) {
             point.x = Math.clamp(point.x, 0, window.cvat.player.geometry.frameWidth);
             point.y = Math.clamp(point.y, 0, window.cvat.player.geometry.frameHeight);
+
             box.xtl = Math.min(box.xtl, point.x);
             box.ytl = Math.min(box.ytl, point.y);
             box.xbr = Math.max(box.xbr, point.x);
@@ -906,6 +941,8 @@ class PolyShapeModel extends ShapeModel {
         position.points = PolyShapeModel.convertNumberArrayToString(points);
 
         let pos = {
+            height: box.ybr - box.ytl,
+            width: box.xbr - box.xtl,
             occluded: position.occluded,
             points: position.points,
             z_order: position.z_order,
@@ -914,9 +951,14 @@ class PolyShapeModel extends ShapeModel {
         if (this._verifyArea(box)) {
             if (!silent) {
                 // Undo/redo code
-                let oldPos = Object.assign({}, this._positions[frame]);
+                const oldPos = Object.assign({}, this._positions[frame]);
                 window.cvat.addAction('Change Position', () => {
-                    this.updatePosition(frame, oldPos, false);
+                    if (!Object.keys(oldPos).length) {
+                        delete this._positions[frame];
+                        this.notify('position');
+                    } else {
+                        this.updatePosition(frame, oldPos, false);
+                    }
                 }, () => {
                     this.updatePosition(frame, pos, false);
                 }, frame);
@@ -924,7 +966,7 @@ class PolyShapeModel extends ShapeModel {
             }
 
             if (this._type.startsWith('annotation')) {
-                if (this._frame != frame) {
+                if (this._frame !== frame) {
                     throw Error(`Got bad frame for annotation poly shape during update position: ${frame}. Own frame is ${this._frame}`);
                 }
                 this._positions[frame] = pos;
@@ -937,66 +979,67 @@ class PolyShapeModel extends ShapeModel {
         }
 
         if (!silent) {
-            this._updateReason = 'position';
-            this.notify();
+            this.notify('position');
         }
     }
 
     export() {
-        let immutableAttributes = [];
+        const objectAttributes = [];
         for (let attrId in this._attributes.immutable) {
-            immutableAttributes.push({
+            objectAttributes.push({
                 id: +attrId,
-                value: this._attributes.immutable[attrId],
+                value: String(this._attributes.immutable[attrId]),
             });
         }
 
         if (this._type.startsWith('annotation')) {
             if (this._frame in this._attributes.mutable) {
                 for (let attrId in this._attributes.mutable[this._frame]) {
-                    immutableAttributes.push({
+                    objectAttributes.push({
                         id: +attrId,
-                        value: this._attributes.mutable[this._frame][attrId],
+                        value: String(this._attributes.mutable[this._frame][attrId]),
                     });
                 }
             }
 
-            return Object.assign({}, this._positions[this._frame], {
-                attributes: immutableAttributes,
+            return Object.assign({}, {
+                id: this._serverID,
+                attributes: objectAttributes,
                 label_id: this._label,
-                group_id: this._groupId,
+                group: this._groupId,
                 frame: this._frame,
-            });
+                type: this._type.split('_')[1],
+            }, this._positions[this._frame]);
         }
         else {
-            let polyPath = {
+            const track = {
+                id: this._serverID,
+                attributes: objectAttributes,
                 label_id: this._label,
-                group_id: this._groupId,
+                group: this._groupId,
                 frame: this._frame,
-                attributes: immutableAttributes,
                 shapes: [],
             };
 
             for (let frame in this._positions) {
-                let mutableAttributes = [];
+                let shapeAttributes = [];
                 if (frame in this._attributes.mutable) {
                     for (let attrId in this._attributes.mutable[frame]) {
-                        mutableAttributes.push({
+                        shapeAttributes.push({
                             id: +attrId,
-                            value: this._attributes.mutable[frame][attrId],
+                            value: String(this._attributes.mutable[frame][attrId]),
                         });
                     }
                 }
 
-                let position = Object.assign({}, this._positions[frame], {
-                    attributes: mutableAttributes,
+                track.shapes.push(Object.assign({
                     frame: +frame,
-                });
-
-                polyPath.shapes.push(position);
+                    attributes: shapeAttributes,
+                    type: this._type.split('_')[1],
+                }, this._positions[frame]));
             }
 
-            return polyPath;
+            return track;
         }
     }
 
@@ -1011,40 +1054,6 @@ class PolyShapeModel extends ShapeModel {
         }
     }
 
-    clonePoint(idx, direction, inserPoint) {
-        let frame = window.cvat.player.frames.current;
-        let position = this._interpolatePosition(frame);
-        let points = PolyShapeModel.convertStringToNumberArray(position.points);
-
-        let otherIdx = null;
-        if (direction === 'before') {
-            otherIdx = idx - 1 >= 0 ? idx - 1: points.length - 1;
-        }
-        else {
-            otherIdx = idx + 1 in points ? idx + 1: 0;
-        }
-        let curP = points[idx];
-        let otherP = points[otherIdx];
-        let newP = {
-            x: curP.x + (otherP.x - curP.x) / 2,
-            y: curP.y + (otherP.y - curP.y) / 2,
-        };
-
-        if (direction === 'before') {
-            points.splice(idx, 0, newP);
-        }
-        else {
-            points.splice(idx + 1, 0, newP);
-        }
-
-        if (inserPoint) {
-            position.points = PolyShapeModel.convertNumberArrayToString(points);
-            this.updatePosition(frame, position);
-        }
-
-        return newP;
-    }
-
     static convertStringToNumberArray(serializedPoints) {
         let pointArray = [];
         for (let pair of serializedPoints.split(' ')) {
@@ -1057,19 +1066,28 @@ class PolyShapeModel extends ShapeModel {
     }
 
     static convertNumberArrayToString(arrayPoints) {
-        let serializedPoints = '';
-        for (let point of arrayPoints) {
-            serializedPoints += `${point.x},${point.y} `;
-        }
-        let len = serializedPoints.length;
-        if (len) {
-            serializedPoints = serializedPoints.substring(0, len - 1);
-        }
-
-        return serializedPoints;
+        return arrayPoints.map(point => `${point.x},${point.y}`).join(' ');
     }
 
     static importPositions(positions) {
+        function getBBRect(points) {
+            const box = {
+                xtl: Number.MAX_SAFE_INTEGER,
+                ytl: Number.MAX_SAFE_INTEGER,
+                xbr: Number.MIN_SAFE_INTEGER,
+                ybr: Number.MIN_SAFE_INTEGER,
+            };
+
+            for (let point of PolyShapeModel.convertStringToNumberArray(points)) {
+                box.xtl = Math.min(box.xtl, point.x);
+                box.ytl = Math.min(box.ytl, point.y);
+                box.xbr = Math.max(box.xbr, point.x);
+                box.ybr = Math.max(box.ybr, point.y);
+            }
+
+            return [box.xbr - box.xtl, box.ybr - box.ytl];
+        }
+
         let imported = {};
         if (this._type.startsWith('interpolation')) {
             let last_key_in_prev_segm = null;
@@ -1079,7 +1097,10 @@ class PolyShapeModel extends ShapeModel {
             for (let pos of positions) {
                 let frame = pos.frame;
                 if (frame >= segm_start && frame <= segm_stop) {
+                    const [width, height] = getBBRect(pos.points);
                     imported[pos.frame] = {
+                        width: width,
+                        height: height,
                         points: pos.points,
                         occluded: pos.occluded,
                         outside: pos.outside,
@@ -1095,7 +1116,10 @@ class PolyShapeModel extends ShapeModel {
             }
 
             if (last_key_in_prev_segm && !(segm_start in imported)) {
+                const [width, height] = getBBRect(last_key_in_prev_segm.points);
                 imported[segm_start] = {
+                    width: width,
+                    height: height,
                     points: last_key_in_prev_segm.points,
                     occluded: last_key_in_prev_segm.occluded,
                     outside: last_key_in_prev_segm.outside,
@@ -1106,7 +1130,10 @@ class PolyShapeModel extends ShapeModel {
             return imported;
         }
 
+        const [width, height] = getBBRect(positions.points);
         imported[this._frame] = {
+            width: width,
+            height: height,
             points: positions.points,
             occluded: positions.occluded,
             z_order: positions.z_order,
@@ -1117,9 +1144,63 @@ class PolyShapeModel extends ShapeModel {
 }
 
 class PointsModel extends PolyShapeModel {
-    constructor(data, type, id, color) {
-        super(data, type, id, color);
+    constructor(data, type, clientID, color) {
+        super(data, type, clientID, color);
         this._minPoints = 1;
+    }
+
+    _interpolatePosition(frame) {
+        if (this._type.startsWith('annotation')) {
+            return Object.assign({}, this._positions[this._frame], {
+                outside: this._frame !== frame,
+            });
+        }
+
+        let [leftFrame, rightFrame] = this._neighboringFrames(frame);
+        if (frame in this._positions) {
+            leftFrame = frame;
+        }
+
+        let leftPos = null;
+        let rightPos = null;
+
+        if (leftFrame != null) leftPos = this._positions[leftFrame];
+        if (rightFrame != null) rightPos = this._positions[rightFrame];
+
+        if (!leftPos) {
+            if (rightPos) {
+                return Object.assign({}, rightPos, {
+                    outside: true,
+                });
+            }
+
+            return {
+                outside: true,
+            };
+        }
+
+        if (frame === leftFrame || leftPos.outside || !rightPos || rightPos.outside) {
+            return Object.assign({}, leftPos);
+        }
+
+        const rightPoints = PolyShapeModel.convertStringToNumberArray(rightPos.points);
+        const leftPoints = PolyShapeModel.convertStringToNumberArray(leftPos.points);
+
+        if (rightPoints.length === leftPoints.length && leftPoints.length === 1) {
+            const moveCoeff = (frame - leftFrame) / (rightFrame - leftFrame);
+            const interpolatedPoints = [{
+                x: leftPoints[0].x + (rightPoints[0].x - leftPoints[0].x) * moveCoeff,
+                y: leftPoints[0].y + (rightPoints[0].y - leftPoints[0].y) * moveCoeff,
+            }];
+
+            return Object.assign({}, leftPos, {
+                points: PolyShapeModel.convertNumberArrayToString(interpolatedPoints),
+            });
+        }
+
+        return Object.assign({}, leftPos, {
+            outside: true,
+        });
     }
 
     distance(mousePos, frame) {
@@ -1143,8 +1224,8 @@ class PointsModel extends PolyShapeModel {
 
 
 class PolylineModel extends PolyShapeModel {
-    constructor(data, type, id, color) {
-        super(data, type, id, color);
+    constructor(data, type, clientID, color) {
+        super(data, type, clientID, color);
         this._minPoints = 2;
     }
 
@@ -1247,8 +1328,7 @@ class PolygonModel extends PolyShapeModel {
 
     set draggable(value) {
         this._draggable = value;
-        this._updateReason = 'draggable';
-        this.notify();
+        this.notify('draggable');
     }
 
     get draggable() {
@@ -1419,7 +1499,7 @@ class PolygonController extends PolyShapeController {
 
 /******************************** SHAPE VIEWS  ********************************/
 class ShapeView extends Listener {
-    constructor(shapeModel, shapeController, svgScene, menusScene) {
+    constructor(shapeModel, shapeController, svgScene, menusScene, textsScene) {
         super('onShapeViewUpdate', () => this);
         this._uis = {
             menu: null,
@@ -1432,13 +1512,14 @@ class ShapeView extends Listener {
 
         this._scenes = {
             svg: svgScene,
-            menus: menusScene
+            menus: menusScene,
+            texts: textsScene
         };
 
         this._appearance = {
             colors: shapeModel.color,
             fillOpacity: 0,
-            selectedFillOpacity: 0.1,
+            selectedFillOpacity: 0.2,
         };
 
         this._flags = {
@@ -1449,9 +1530,13 @@ class ShapeView extends Listener {
         };
 
         this._controller = shapeController;
+        this._updateReason = null;
 
         this._shapeContextMenu = $('#shapeContextMenu');
         this._pointContextMenu = $('#pointContextMenu');
+
+        this._rightBorderFrame = $('#playerFrame')[0].offsetWidth;
+        this._bottomBorderFrame = $('#playerFrame')[0].offsetHeight;
 
         shapeModel.subscribe(this);
     }
@@ -1459,9 +1544,9 @@ class ShapeView extends Listener {
 
     _makeEditable() {
         if (this._uis.shape && this._uis.shape.node.parentElement && !this._flags.editable) {
-            let events = {
+            const events = {
                 drag: null,
-                resize: null
+                resize: null,
             };
 
             this._uis.shape.front();
@@ -1472,19 +1557,19 @@ class ShapeView extends Listener {
                     this._flags.dragging = true;
                     blurAllElements();
                     this._hideShapeText();
-                    this.notify();
+                    this.notify('drag');
                 }).on('dragend', (e) => {
-                    let p1 = e.detail.handler.startPoints.point;
-                    let p2 = e.detail.p;
-                    if (Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)) > 1) {
-                        let frame = window.cvat.player.frames.current;
-                        this._controller.updatePosition(frame, this._buildPosition());
-                    }
+                    const p1 = e.detail.handler.startPoints.point;
+                    const p2 = e.detail.p;
                     events.drag.close();
                     events.drag = null;
                     this._flags.dragging = false;
+                    if (Math.sqrt(Math.pow((p1.x - p2.x), 2) + Math.pow((p1.y - p2.y), 2)) > 1) {
+                        const frame = window.cvat.player.frames.current;
+                        this._controller.updatePosition(frame, this._buildPosition());
+                    }
                     this._showShapeText();
-                    this.notify();
+                    this.notify('drag');
                 });
 
                 // Setup resize events
@@ -1502,22 +1587,39 @@ class ShapeView extends Listener {
                     events.resize = Logger.addContinuedEvent(Logger.EventType.resizeObject);
                     blurAllElements();
                     this._hideShapeText();
-                    this.notify();
+                    this.notify('resize');
                 }).on('resizing', () => {
                     objWasResized = true;
                 }).on('resizedone', () => {
-                    if (objWasResized) {
-                        let frame = window.cvat.player.frames.current;
-                        this._controller.updatePosition(frame, this._buildPosition());
-                        objWasResized = false;
-                    }
                     events.resize.close();
                     events.resize = null;
                     this._flags.resizing = false;
+                    if (objWasResized) {
+                        const frame = window.cvat.player.frames.current;
+                        this._controller.updatePosition(frame, this._buildPosition());
+                        objWasResized = false;
+                    }
                     this._showShapeText();
-                    this.notify();
+                    this.notify('resize');
                 });
 
+                let centers = ['t', 'r', 'b', 'l'];
+                let corners = ['lt', 'rt', 'rb', 'lb'];
+                let elements = {};
+                for (let i = 0; i < 4; ++i) {
+                    elements[centers[i]] = $(`.svg_select_points_${centers[i]}`);
+                    elements[corners[i]] = $(`.svg_select_points_${corners[i]}`);
+                }
+
+                let angle = window.cvat.player.rotation;
+                let offset = angle / 90 < 0 ? angle / 90 + centers.length : angle / 90;
+
+                for (let i = 0; i < 4; ++i) {
+                    elements[centers[i]].removeClass(`svg_select_points_${centers[i]}`)
+                        .addClass(`svg_select_points_${centers[(i+offset) % centers.length]}`);
+                    elements[corners[i]].removeClass(`svg_select_points_${corners[i]}`)
+                        .addClass(`svg_select_points_${corners[(i+offset) % centers.length]}`);
+                }
 
                 this._updateColorForDots();
                 let self = this;
@@ -1538,8 +1640,7 @@ class ShapeView extends Listener {
             // Setup context menu
             this._uis.shape.on('mousedown.contextMenu', (e) => {
                 if (e.which === 1) {
-                    this._shapeContextMenu.hide(100);
-                    this._pointContextMenu.hide(100);
+                    $('.custom-menu').hide(100);
                 }
                 if (e.which === 3) {
                     e.stopPropagation();
@@ -1547,7 +1648,7 @@ class ShapeView extends Listener {
             });
 
             this._uis.shape.on('contextmenu.contextMenu', (e) => {
-                this._pointContextMenu.hide(100);
+                $('.custom-menu').hide(100);
                 let type = this._controller.type.split('_');
                 if (type[0] === 'interpolation') {
                     this._shapeContextMenu.find('.interpolationItem').removeClass('hidden');
@@ -1571,9 +1672,12 @@ class ShapeView extends Listener {
                     dragPolyItem.addClass('hidden');
                 }
 
-                this._shapeContextMenu.finish().show(100).offset({
-                    top: e.pageY - 10,
-                    left: e.pageX - 10,
+                this._shapeContextMenu.finish().show(100);
+                let x = Math.min(e.pageX, this._rightBorderFrame - this._shapeContextMenu[0].scrollWidth);
+                let y = Math.min(e.pageY, this._bottomBorderFrame - this._shapeContextMenu[0].scrollHeight);
+                this._shapeContextMenu.offset({
+                    left: x,
+                    top: y,
                 });
 
                 e.preventDefault();
@@ -1589,6 +1693,16 @@ class ShapeView extends Listener {
                 deepSelect: true,
             }).resize(false);
 
+            if (this._flags.resizing) {
+                this._flags.resizing = false;
+                this.notify('resize');
+            }
+
+            if (this._flags.dragging) {
+                this._flags.dragging = false;
+                this.notify('drag');
+            }
+
             this._uis.shape.off('dragstart')
                 .off('dragend')
                 .off('resizestart')
@@ -1596,11 +1710,11 @@ class ShapeView extends Listener {
                 .off('resizedone')
                 .off('contextmenu.contextMenu')
                 .off('mousedown.contextMenu');
+
             this._flags.editable = false;
         }
 
-        this._pointContextMenu.hide(100);
-        this._shapeContextMenu.hide(100);
+        $('.custom-menu').hide(100);
     }
 
 
@@ -1672,7 +1786,7 @@ class ShapeView extends Listener {
 
     _hideShapeText() {
         if (this._uis.text && this._uis.text.node.parentElement) {
-            this._scenes.svg.node.removeChild(this._uis.text.node);
+            this._scenes.texts.node.removeChild(this._uis.text.node);
         }
     }
 
@@ -1683,7 +1797,7 @@ class ShapeView extends Listener {
             this._drawShapeText(this._controller.interpolate(frame).attributes);
         }
         else if (!this._uis.text.node.parentElement) {
-            this._scenes.svg.node.appendChild(this._uis.text.node);
+            this._scenes.texts.node.appendChild(this._uis.text.node);
         }
 
         this.updateShapeTextPosition();
@@ -1695,18 +1809,16 @@ class ShapeView extends Listener {
         if (this._uis.shape) {
             let id = this._controller.id;
             let label = ShapeView.labels()[this._controller.label];
-            let bbox = this._uis.shape.node.getBBox();
-            let x = bbox.x + bbox.width + TEXT_MARGIN;
 
-            this._uis.text = this._scenes.svg.text((add) => {
-                add.tspan(`${label.normalize()} ${id}`).addClass('bold');
+            this._uis.text = this._scenes.texts.text((add) => {
+                add.tspan(`${label.normalize()} ${id}`).style("text-transform", "uppercase");
                 for (let attrId in attributes) {
                     let value = attributes[attrId].value != AAMUndefinedKeyword ?
                         attributes[attrId].value : '';
                     let name = attributes[attrId].name;
-                    add.tspan(`${name}: ${value}`).attr({ dy: '1em', x: x, attrId: attrId});
+                    add.tspan(`${name}: ${value}`).attr({ dy: '1em', x: 0, attrId: attrId});
                 }
-            }).move(x, bbox.y).addClass('shapeText regular');
+            }).move(0, 0).addClass('shapeText bold');
         }
     }
 
@@ -1828,7 +1940,7 @@ class ShapeView extends Listener {
         UI.style.backgroundColor = this._controller.color.ui;
 
         this._uis.menu = $(UI);
-        this._scenes.menus.append(this._uis.menu);
+        this._scenes.menus.prepend(this._uis.menu);
 
         function makeTitleBlock(id, label, type, shortkeys) {
             let title = document.createElement('div');
@@ -1904,23 +2016,21 @@ class ShapeView extends Listener {
             if (type.split('_')[0] == 'interpolation') {
                 let interpolationCenter = document.createElement('center');
 
-                if (type.split('_')[1] == 'box') {
-                    let outsideButton = document.createElement('button');
-                    outsideButton.classList.add('graphicButton', 'outsideButton');
-                    outsideButton.setAttribute('title', `
+                let outsideButton = document.createElement('button');
+                outsideButton.classList.add('graphicButton', 'outsideButton');
+                outsideButton.setAttribute('title', `
                     ${shortkeys['toggle_outside'].view_value} - ${shortkeys['toggle_outside'].description}`);
 
-                    let keyframeButton = document.createElement('button');
-                    keyframeButton.classList.add('graphicButton', 'keyFrameButton');
-                    keyframeButton.setAttribute('title', `
+                let keyframeButton = document.createElement('button');
+                keyframeButton.classList.add('graphicButton', 'keyFrameButton');
+                keyframeButton.setAttribute('title', `
                     ${shortkeys['toggle_key_frame'].view_value} - ${shortkeys['toggle_key_frame'].description}`);
 
-                    interpolationCenter.appendChild(outsideButton);
-                    interpolationCenter.appendChild(keyframeButton);
+                interpolationCenter.appendChild(outsideButton);
+                interpolationCenter.appendChild(keyframeButton);
 
-                    this._uis.buttons['outside'] = outsideButton;
-                    this._uis.buttons['keyframe'] = keyframeButton;
-                }
+                this._uis.buttons['outside'] = outsideButton;
+                this._uis.buttons['keyframe'] = keyframeButton;
 
                 let prevKeyFrameButton = document.createElement('button');
                 prevKeyFrameButton.classList.add('graphicButton', 'prevKeyFrameButton');
@@ -2275,7 +2385,7 @@ class ShapeView extends Listener {
                 let attrInfo = window.cvat.labelsInfo.attrInfo(attrId);
                 if (attrInfo.type === 'radio') {
                     let idx = attrInfo.values.indexOf(attributes[attrId].value);
-                    this._uis.attributes[attrId][idx].click();
+                    this._uis.attributes[attrId][idx].checked = true;
                 }
                 else if (attrInfo.type === 'checkbox') {
                     this._uis.attributes[attrId].checked = attributes[attrId].value;
@@ -2405,6 +2515,18 @@ class ShapeView extends Listener {
     }
 
 
+    notify(newReason) {
+        let oldReason = this._updateReason;
+        this._updateReason = newReason;
+        try {
+            Listener.prototype.notify.call(this);
+        }
+        finally {
+            this._updateReason = oldReason;
+        }
+    }
+
+
     // Inteface methods
     draw(interpolation) {
         let outside = interpolation.position.outside;
@@ -2446,28 +2568,30 @@ class ShapeView extends Listener {
                 this._uis.shape.attr('stroke-width', STROKE_WIDTH / scale);
             }
 
-
             if (this._uis.text && this._uis.text.node.parentElement) {
-                let revscale = 1 / scale;
-                let shapeBBox = this._uis.shape.node.getBBox();
+                let shapeBBox = window.cvat.translate.box.canvasToClient(this._scenes.svg.node, this._uis.shape.node.getBBox());
                 let textBBox = this._uis.text.node.getBBox();
 
-                let x = shapeBBox.x + shapeBBox.width + TEXT_MARGIN;
-                let y = shapeBBox.y;
+                let drawPoint = {
+                    x: shapeBBox.x + shapeBBox.width + TEXT_MARGIN,
+                    y: shapeBBox.y
+                };
 
-                if (x + textBBox.width * revscale > window.cvat.player.geometry.frameWidth) {
-                    x = shapeBBox.x - TEXT_MARGIN - textBBox.width * revscale;
-                    if (x < 0) {
-                        x = shapeBBox.x + TEXT_MARGIN;
-                    }
+                const textContentScale = 10;
+                if ((drawPoint.x + textBBox.width * textContentScale) > this._rightBorderFrame) {
+                    drawPoint = {
+                        x: shapeBBox.x + TEXT_MARGIN,
+                        y: shapeBBox.y
+                    };
                 }
 
-                if (y + textBBox.height * revscale > window.cvat.player.geometry.frameHeight) {
-                    y = Math.max(0, window.cvat.player.geometry.frameHeight - textBBox.height * revscale);
-                }
+                let textPoint = window.cvat.translate.point.clientToCanvas(
+                    this._scenes.texts.node,
+                    drawPoint.x,
+                    drawPoint.y
+                );
 
-                this._uis.text.move(x / revscale, y / revscale);
-                this._uis.text.attr('transform', `scale(${revscale})`);
+                this._uis.text.move(textPoint.x, textPoint.y);
 
                 for (let tspan of this._uis.text.lines().members) {
                     tspan.attr('x', this._uis.text.attr('x'));
@@ -2478,13 +2602,20 @@ class ShapeView extends Listener {
 
     onShapeUpdate(model) {
         let interpolation = model.interpolate(window.cvat.player.frames.current);
-        let hiddenText = model.hiddenText;
-        let hiddenShape = model.hiddenShape;
-        let activeAAM = model.activeAAM;
+        let activeAttribute = model.activeAttribute;
+        let hiddenText = model.hiddenText && activeAttribute === null;
+        let hiddenShape = model.hiddenShape && activeAttribute === null;
+
+        if (this._flags.resizing || this._flags.dragging) {
+            Logger.addEvent(Logger.EventType.debugInfo, {
+                debugMessage: "Object has been updated during resizing/dragging",
+                updateReason: model.updateReason,
+            });
+        }
 
         this._makeNotEditable();
         this._deselect();
-        if (hiddenText && !activeAAM.shape) {
+        if (hiddenText) {
             this._hideShapeText();
         }
 
@@ -2496,7 +2627,8 @@ class ShapeView extends Listener {
             break;
         case 'attributes':
             this._updateMenuContent(interpolation);
-            setupHidden.call(this, hiddenShape, hiddenText, activeAAM, model.active, interpolation);
+            setupHidden.call(this, hiddenShape, hiddenText,
+                activeAttribute, model.active, interpolation);
             break;
         case 'merge':
             this._setupMergeView(model.merge);
@@ -2512,6 +2644,7 @@ class ShapeView extends Listener {
 
             this._setupLockedUI(locked);
             this._updateButtonsBlock(interpolation.position);
+            this.notify('lock');
             break;
         }
         case 'occluded':
@@ -2519,12 +2652,15 @@ class ShapeView extends Listener {
             this._updateButtonsBlock(interpolation.position);
             break;
         case 'hidden':
-            setupHidden.call(this, hiddenShape, hiddenText, activeAAM, model.active, interpolation);
+            setupHidden.call(this, hiddenShape, hiddenText,
+                activeAttribute, model.active, interpolation);
             this._updateButtonsBlock(interpolation.position);
+            this.notify('hidden');
             break;
         case 'remove':
             if (model.removed) {
                 this.erase();
+                this.notify('remove');
             }
             break;
         case 'position':
@@ -2546,21 +2682,25 @@ class ShapeView extends Listener {
             if (colorByLabel.prop('checked')) {
                 colorByLabel.trigger('change');
             }
+            this.notify('changelabel');
             break;
         }
-        case 'attributeFocus': {
-            let attrId = model.activeAAM.attributeId;
-            this._uis.attributes[attrId].focus();
-            this._uis.attributes[attrId].select();
-            break;
-        }
-        case 'activeAAM':
-            this._setupAAMView(activeAAM.shape, interpolation.position);
-            setupHidden.call(this, hiddenShape, hiddenText, activeAAM, model.active, interpolation);
+        case 'activeAttribute':
+            setupHidden.call(this, hiddenShape, hiddenText,
+                activeAttribute, model.active, interpolation);
 
-            if (activeAAM.shape && this._uis.shape) {
+            if (activeAttribute != null && this._uis.shape) {
                 this._uis.shape.node.dispatchEvent(new Event('click'));
-                this._highlightAttribute(activeAAM.attributeId);
+                this._highlightAttribute(activeAttribute);
+
+                let attrInfo = window.cvat.labelsInfo.attrInfo(activeAttribute);
+                if (attrInfo.type === 'text' || attrInfo.type === 'number') {
+                    this._uis.attributes[activeAttribute].focus();
+                    this._uis.attributes[activeAttribute].select();
+                }
+                else {
+                    blurAllElements();
+                }
             }
             else {
                 this._highlightAttribute(null);
@@ -2591,9 +2731,9 @@ class ShapeView extends Listener {
         }
         }
 
-        if (model.active || activeAAM.shape) {
+        if (model.active || activeAttribute != null) {
             this._select();
-            if (!activeAAM.shape) {
+            if (activeAttribute === null) {
                 this._makeEditable();
             }
         }
@@ -2602,25 +2742,25 @@ class ShapeView extends Listener {
             this._showShapeText();
         }
 
-        function setupHidden(hiddenShape, hiddenText, activeAAM, active, interpolation) {
+        function setupHidden(hiddenShape, hiddenText, attributeId, active, interpolation) {
             this._makeNotEditable();
             this._removeShapeUI();
             this._removeShapeText();
 
-            if (!hiddenShape || activeAAM.shape) {
+            if (!hiddenShape) {
                 this._drawShapeUI(interpolation.position);
                 this._setupOccludedUI(interpolation.position.occluded);
-                if (!hiddenText || active || activeAAM.shape) {
+                if (!hiddenText || active) {
                     this._showShapeText();
                 }
 
-                if (model.active || activeAAM.shape) {
+                if (active || attributeId != null) {
                     this._select();
-                    if (!activeAAM.shape) {
+                    if (attributeId === null) {
                         this._makeEditable();
                     }
                     else {
-                        this._highlightAttribute(activeAAM.attributeId);
+                        this._highlightAttribute(attributeId);
                     }
                 }
             }
@@ -2687,6 +2827,10 @@ class ShapeView extends Listener {
             }
         }
 
+        if ('selected-fill-opacity' in settings) {
+            this._appearance.selectedFillOpacity = settings['selected-fill-opacity'];
+        }
+
         if (settings['black-stroke']) {
             this._appearance['stroke'] = 'black';
         }
@@ -2711,6 +2855,10 @@ class ShapeView extends Listener {
         return this._flags.resizing;
     }
 
+    get updateReason() {
+        return this._updateReason;
+    }
+
     // Used in shapeGrouper in order to get model via controller and set group id
     controller() {
         return this._controller;
@@ -2733,31 +2881,45 @@ ShapeView.labels = function() {
 
 
 class BoxView extends ShapeView {
-    constructor(boxModel, boxController, svgScene, menusScene) {
-        super(boxModel, boxController, svgScene, menusScene);
+    constructor(boxModel, boxController, svgScene, menusScene, textsScene) {
+        super(boxModel, boxController, svgScene, menusScene, textsScene);
+
+        this._uis.boxSize = null;
     }
 
 
     _makeEditable() {
         if (this._uis.shape && this._uis.shape.node.parentElement && !this._flags.editable) {
             if (!this._controller.lock) {
-                let sizeObject = null;
                 this._uis.shape.on('resizestart', (e) => {
-                    sizeObject = drawBoxSize(this._scenes.svg, e.target);
+                    if (this._uis.boxSize) {
+                        this._uis.boxSize.rm();
+                        this._uis.boxSize = null;
+                    }
+
+                    this._uis.boxSize = drawBoxSize(this._scenes.svg, this._scenes.texts, e.target.getBBox());
                 }).on('resizing', (e) => {
-                    sizeObject = drawBoxSize.call(sizeObject, this._scenes.svg, e.target);
+                    this._uis.boxSize = drawBoxSize.call(this._uis.boxSize, this._scenes.svg, this._scenes.texts, e.target.getBBox());
                 }).on('resizedone', () => {
-                    sizeObject.rm();
+                    this._uis.boxSize.rm();
                 });
             }
             ShapeView.prototype._makeEditable.call(this);
         }
     }
 
+    _makeNotEditable() {
+        if (this._uis.boxSize) {
+            this._uis.boxSize.rm();
+            this._uis.boxSize = null;
+        }
+        ShapeView.prototype._makeNotEditable.call(this);
+    }
+
 
     _buildPosition() {
         let shape = this._uis.shape.node;
-        return {
+        return window.cvat.translate.box.canvasToActual({
             xtl: +shape.getAttribute('x'),
             ytl: +shape.getAttribute('y'),
             xbr: +shape.getAttribute('x') + +shape.getAttribute('width'),
@@ -2765,13 +2927,12 @@ class BoxView extends ShapeView {
             occluded: this._uis.shape.hasClass('occludedShape'),
             outside: false,    // if drag or resize possible, track is not outside
             z_order: +shape.getAttribute('z_order'),
-        };
+        });
     }
 
 
     _drawShapeUI(position) {
-        let xtl = position.xtl;
-        let ytl = position.ytl;
+        position = window.cvat.translate.box.actualToCanvas(position);
         let width = position.xbr - position.xtl;
         let height = position.ybr - position.ytl;
 
@@ -2781,108 +2942,92 @@ class BoxView extends ShapeView {
             'stroke-width': STROKE_WIDTH /  window.cvat.player.geometry.scale,
             'z_order': position.z_order,
             'fill-opacity': this._appearance.fillOpacity
-        }).move(xtl, ytl).addClass('shape');
+        }).move(position.xtl, position.ytl).addClass('shape');
 
         ShapeView.prototype._drawShapeUI.call(this);
-    }
-
-
-    _setupAAMView(active, pos) {
-        let oldRect = $('#outsideRect');
-        let oldMask = $('#outsideMask');
-
-        if (active) {
-            if (oldRect.length) {
-                oldRect.remove();
-                oldMask.remove();
-            }
-
-            let size = {
-                x: 0,
-                y: 0,
-                width: window.cvat.player.geometry.frameWidth,
-                height: window.cvat.player.geometry.frameHeight
-            };
-
-            let excludeField = this._scenes.svg.rect(size.width, size.height).move(size.x, size.y).fill('#666');
-            let includeField = this._scenes.svg.rect(pos.xbr - pos.xtl, pos.ybr - pos.ytl).move(pos.xtl, pos.ytl);
-            this._scenes.svg.mask().add(excludeField).add(includeField).fill('black').attr('id', 'outsideMask');
-            this._scenes.svg.rect(size.width, size.height).move(size.x, size.y).attr({
-                mask: 'url(#outsideMask)',
-                id: 'outsideRect'
-            });
-        }
-        else {
-            oldRect.remove();
-            oldMask.remove();
-        }
     }
 }
 
 
 class PolyShapeView extends ShapeView {
-    constructor(polyShapeModel, polyShapeController, svgScene, menusScene) {
-        super(polyShapeModel, polyShapeController, svgScene, menusScene);
+    constructor(polyShapeModel, polyShapeController, svgScene, menusScene, textsScene) {
+        super(polyShapeModel, polyShapeController, svgScene, menusScene, textsScene);
     }
 
 
     _buildPosition() {
         return {
-            points: this._uis.shape.node.getAttribute('points'),
+            points: window.cvat.translate.points.canvasToActual(this._uis.shape.node.getAttribute('points')),
             occluded: this._uis.shape.hasClass('occludedShape'),
             outside: false,
             z_order: +this._uis.shape.node.getAttribute('z_order'),
         };
     }
 
-
-    _setupAAMView(active, pos) {
-        let oldRect = $('#outsideRect');
-        let oldMask = $('#outsideMask');
-
-        if (active) {
-            if (oldRect.length) {
-                oldRect.remove();
-                oldMask.remove();
-            }
-
-            let size = {
-                x: 0,
-                y: 0,
-                width: window.cvat.player.geometry.frameWidth,
-                height: window.cvat.player.geometry.frameHeight
-            };
-
-            let excludeField = this._scenes.svg.rect(size.width, size.height).move(size.x, size.y).fill('#666');
-            let includeField = this._scenes.svg.polygon(pos.points);
-            this._scenes.svg.mask().add(excludeField).add(includeField).fill('black').attr('id', 'outsideMask');
-            this._scenes.svg.rect(size.width, size.height).move(size.x, size.y).attr({
-                mask: 'url(#outsideMask)',
-                id: 'outsideRect'
-            });
-        }
-        else {
-            oldRect.remove();
-            oldMask.remove();
-        }
-    }
-
-
     _makeEditable() {
         ShapeView.prototype._makeEditable.call(this);
         if (this._flags.editable) {
             for (let point of $('.svg_select_points')) {
                 point = $(point);
-                point.on('contextmenu.contextMenu', (e) => {
-                    this._shapeContextMenu.hide(100);
-                    this._pointContextMenu.attr('point_idx', point.index());
 
-                    this._pointContextMenu.finish().show(100).offset({
-                        top: e.pageY - 20,
-                        left: e.pageX - 20,
+                point.on('contextmenu.contextMenu', (e) => {
+                    $('.custom-menu').hide(100);
+                    this._pointContextMenu.attr('point_idx', point.index());
+                    this._pointContextMenu.attr('dom_point_id', point.attr('id'));
+
+                    this._pointContextMenu.finish().show(100);
+                    let x = Math.min(e.pageX, this._rightBorderFrame - this._pointContextMenu[0].scrollWidth);
+                    let y = Math.min(e.pageY, this._bottomBorderFrame - this._pointContextMenu[0].scrollHeight);
+                    this._pointContextMenu.offset({
+                        left: x,
+                        top: y,
                     });
 
                     e.preventDefault();
+                    e.stopPropagation();
+                });
+
+                point.on('dblclick.polyshapeEditor', (e) => {
+                    if (this._controller.type === 'interpolation_points') {
+                        // Not available for interpolation points
+                        return;
+                    }
+
+                    if (e.shiftKey) {
+                        if (!window.cvat.mode) {
+                            // Get index before detach shape from DOM
+                            let index = point.index();
+
+                            // Make non active view and detach shape from DOM
+                            this._makeNotEditable();
+                            this._deselect();
+                            if (this._controller.hiddenText) {
+                                this._hideShapeText();
+                            }
+                            this._uis.shape.addClass('hidden');
+                            if (this._uis.points) {
+                                this._uis.points.addClass('hidden');
+                            }
+
+                            // Run edit mode
+                            PolyShapeView.editor.edit(this._controller.type.split('_')[1],
+                                this._uis.shape.attr('points'), this._color, index, e,
+                                (points) => {
+                                    this._uis.shape.removeClass('hidden');
+                                    if (this._uis.points) {
+                                        this._uis.points.removeClass('hidden');
+                                    }
+                                    if (points) {
+                                        this._uis.shape.attr('points', points);
+                                        this._controller.updatePosition(window.cvat.player.frames.current, this._buildPosition());
+                                    }
+                                }
+                            );
+                        }
+                    }
+                    else {
+                        this._controller.model().removePoint(point.index());
+                    }
                     e.stopPropagation();
                 });
             }
@@ -2893,6 +3038,7 @@ class PolyShapeView extends ShapeView {
     _makeNotEditable() {
         for (let point of $('.svg_select_points')) {
             $(point).off('contextmenu.contextMenu');
+            $(point).off('dblclick.polyshapeEditor');
         }
         ShapeView.prototype._makeNotEditable.call(this);
     }
@@ -2900,12 +3046,13 @@ class PolyShapeView extends ShapeView {
 
 
 class PolygonView extends PolyShapeView {
-    constructor(polygonModel, polygonController, svgContent, UIContent) {
-        super(polygonModel, polygonController, svgContent, UIContent);
+    constructor(polygonModel, polygonController, svgContent, UIContent, textsScene) {
+        super(polygonModel, polygonController, svgContent, UIContent, textsScene);
     }
 
     _drawShapeUI(position) {
-        this._uis.shape = this._scenes.svg.polygon(position.points).fill(this._appearance.colors.shape).attr({
+        let points = window.cvat.translate.points.actualToCanvas(position.points);
+        this._uis.shape = this._scenes.svg.polygon(points).fill(this._appearance.colors.shape).attr({
             'fill': this._appearance.fill || this._appearance.colors.shape,
             'stroke': this._appearance.stroke || this._appearance.colors.shape,
             'stroke-width': STROKE_WIDTH / window.cvat.player.geometry.scale,
@@ -2939,13 +3086,14 @@ class PolygonView extends PolyShapeView {
 
 
 class PolylineView extends PolyShapeView {
-    constructor(polylineModel, polylineController, svgScene, menusScene) {
-        super(polylineModel, polylineController, svgScene, menusScene);
+    constructor(polylineModel, polylineController, svgScene, menusScene, textsScene) {
+        super(polylineModel, polylineController, svgScene, menusScene, textsScene);
     }
 
 
     _drawShapeUI(position) {
-        this._uis.shape = this._scenes.svg.polyline(position.points).fill(this._appearance.colors.shape).attr({
+        let points = window.cvat.translate.points.actualToCanvas(position.points);
+        this._uis.shape = this._scenes.svg.polyline(points).fill(this._appearance.colors.shape).attr({
             'stroke': this._appearance.stroke || this._appearance.colors.shape,
             'stroke-width': STROKE_WIDTH / window.cvat.player.geometry.scale,
             'z_order': position.z_order,
@@ -3011,8 +3159,8 @@ class PolylineView extends PolyShapeView {
 
 
 class PointsView extends PolyShapeView {
-    constructor(pointsModel, pointsController, svgScene, menusScene) {
-        super(pointsModel, pointsController, svgScene, menusScene);
+    constructor(pointsModel, pointsController, svgScene, menusScene, textsScene) {
+        super(pointsModel, pointsController, svgScene, menusScene, textsScene);
         this._uis.points = null;
     }
 
@@ -3042,17 +3190,18 @@ class PointsView extends PolyShapeView {
 
 
     _drawPointMarkers(position) {
-        if (this._uis.points) {
+        if (this._uis.points || position.outside) {
             return;
         }
 
-        this._uis.points = this._scenes.svg.group().fill(this._appearance.fill || this._appearance.colors.shape)
+        this._uis.points = this._scenes.svg.group()
+            .fill(this._appearance.fill || this._appearance.colors.shape)
             .on('click', () => {
                 this._positionateMenus();
                 this._controller.click();
-            }).attr({
-                'z_order': position.z_order
             }).addClass('pointTempGroup');
+
+        this._uis.points.node.setAttribute('z_order', position.z_order);
 
         let points = PolyShapeModel.convertStringToNumberArray(position.points);
         for (let point of points) {
@@ -3087,17 +3236,19 @@ class PointsView extends PolyShapeView {
         if (!this._controller.hiddenShape) {
             let interpolation = this._controller.interpolate(window.cvat.player.frames.current);
             if (interpolation.position.points) {
-                this._drawPointMarkers(interpolation.position);
+                let points = window.cvat.translate.points.actualToCanvas(interpolation.position.points);
+                this._drawPointMarkers(Object.assign(interpolation.position, {points: points}));
             }
         }
     }
 
 
     _drawShapeUI(position) {
-        this._uis.shape = this._scenes.svg.polyline(position.points).addClass('shape points').attr({
+        let points = window.cvat.translate.points.actualToCanvas(position.points);
+        this._uis.shape = this._scenes.svg.polyline(points).addClass('shape points').attr({
             'z_order': position.z_order,
         });
-        this._drawPointMarkers(position);
+        this._drawPointMarkers(Object.assign(position, {points: points}));
         ShapeView.prototype._drawShapeUI.call(this);
     }
 
@@ -3159,22 +3310,20 @@ class PointsView extends PolyShapeView {
     }
 }
 
-
-
-function buildShapeModel(data, type, idx, color) {
+function buildShapeModel(data, type, clientID, color) {
     switch (type) {
     case 'interpolation_box':
     case 'annotation_box':
-        return new BoxModel(data, type, idx, color);
+        return new BoxModel(data, type, clientID, color);
     case 'interpolation_points':
     case 'annotation_points':
-        return new PointsModel(data, type, idx, color);
+        return new PointsModel(data, type, clientID, color);
     case 'interpolation_polyline':
     case 'annotation_polyline':
-        return new PolylineModel(data, type, idx, color);
+        return new PolylineModel(data, type, clientID, color);
     case 'interpolation_polygon':
     case 'annotation_polygon':
-        return new PolygonModel(data, type, idx, color);
+        return new PolygonModel(data, type, clientID, color);
     }
     throw Error('Unreacheable code was reached.');
 }
@@ -3199,20 +3348,20 @@ function buildShapeController(shapeModel) {
 }
 
 
-function buildShapeView(shapeModel, shapeController, svgContent, UIContent) {
+function buildShapeView(shapeModel, shapeController, svgContent, UIContent, textsContent) {
     switch (shapeModel.type) {
     case 'interpolation_box':
     case 'annotation_box':
-        return new BoxView(shapeModel, shapeController, svgContent, UIContent);
+        return new BoxView(shapeModel, shapeController, svgContent, UIContent, textsContent);
     case 'interpolation_points':
     case 'annotation_points':
-        return new PointsView(shapeModel, shapeController, svgContent, UIContent);
+        return new PointsView(shapeModel, shapeController, svgContent, UIContent, textsContent);
     case 'interpolation_polyline':
     case 'annotation_polyline':
-        return new PolylineView(shapeModel, shapeController, svgContent, UIContent);
+        return new PolylineView(shapeModel, shapeController, svgContent, UIContent, textsContent);
     case 'interpolation_polygon':
     case 'annotation_polygon':
-        return new PolygonView(shapeModel, shapeController, svgContent, UIContent);
+        return new PolygonView(shapeModel, shapeController, svgContent, UIContent, textsContent);
     }
     throw Error('Unreacheable code was reached.');
 }

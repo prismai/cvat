@@ -16,7 +16,6 @@ class ReactiveStats {
         this._currentAnnotator = null;
         this._tilesContainer = $('.tiles-container');
         this._tableBody = $('.stats-table').find('.stats-table-body');
-
         this._operatorsTilesCollection = {}
     }
 
@@ -38,6 +37,20 @@ class ReactiveStats {
         })
     }
 
+    static secondsToHumanReadable(seconds) {
+        let sec_num = parseInt(seconds, 10);
+        let hours = Math.floor(sec_num / 3600);
+        let minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+
+        if (hours < 10) {
+            hours = "0" + hours;
+        }
+        if (minutes < 10) {
+            minutes = "0" + minutes;
+        }
+        return `${hours}:${minutes}`
+    }
+
     createTile(operator, tileData) {
         let tileContainer = $('<div>', {
             class: 'col-md-12'
@@ -53,20 +66,6 @@ class ReactiveStats {
         }).append(tileContainer);
         this._tilesContainer.append(tile);
         return tile
-    }
-
-    static secondsToHumanReadable(seconds) {
-        let sec_num = parseInt(seconds, 10);
-        let hours = Math.floor(sec_num / 3600);
-        let minutes = Math.floor((sec_num - (hours * 3600)) / 60);
-
-        if (hours < 10) {
-            hours = "0" + hours;
-        }
-        if (minutes < 10) {
-            minutes = "0" + minutes;
-        }
-        return `${hours}:${minutes}`
     }
 
     createTableRow(row) {

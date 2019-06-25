@@ -6,6 +6,12 @@
 /.env
 /keys
 /logs
+/components/openvino/*.tgz
+/profiles
+/ssh/*
+!/ssh/README.md
+node_modules
+
 
 # Ignore temporary files
 docker-compose.override.yml
@@ -13,13 +19,25 @@ docker-compose.override.yml
 __pycache__
 *.pyc
 ._*
+.DS_Store
+
 
 # Ignore direnv
 .envrc
 .direnv
 
+
 # Ignore PyCharm files
 .idea
 
+
 # Local settings
 /cvat/settings/local.py
+
+
+# Ignore pyenv
+.python-version
+
+# Ignore development npm files
+package-lock.json
+node_modules
