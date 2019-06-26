@@ -613,9 +613,11 @@ class DashboardView {
         const labelsInput = $('#dashboardLabelsInput');
         const bugTrackerInput = $('#dashboardBugTrackerInput');
         const localSourceRadio = $('#dashboardLocalSource');
+        const remoteSourceRadio = $('#dashboardRemoteSource');
         const shareSourceRadio = $('#dashboardShareSource');
         const selectFiles = $('#dashboardSelectFiles');
         const filesLabel = $('#dashboardFilesLabel');
+        const remoteFileInput = $('#dashboardRemoteFileInput');
         const localFileSelector = $('#dashboardLocalFileSelector');
         const shareFileSelector = $('#dashboardShareBrowseModal');
         const shareBrowseTree = $('#dashboardShareBrowser');
@@ -711,15 +713,32 @@ class DashboardView {
         localSourceRadio.on('click', () => {
             if (source === 'local') {
                 return;
+            } else if (source === 'remote') {
+                selectFiles.parent().removeClass('hidden');
+                remoteFileInput.parent().addClass('hidden');
             }
             source = 'local';
             files = [];
             updateSelectedFiles();
         });
 
+        remoteSourceRadio.on('click', () => {
+            if (source === 'remote') {
+                return;
+            }
+            source = 'remote';
+            selectFiles.parent().addClass('hidden');
+            remoteFileInput.parent().removeClass('hidden');
+            remoteFileInput.prop('value', '');
+            files = [];
+        });
+
         shareSourceRadio.on('click', () => {
             if (source === 'share') {
                 return;
+            } else if (source === 'remote') {
+                selectFiles.parent().removeClass('hidden');
+                remoteFileInput.parent().addClass('hidden');
             }
             source = 'share';
             files = [];
@@ -761,6 +780,11 @@ class DashboardView {
             const localFiles = e.target.files;
             files = localFiles;
             updateSelectedFiles();
+        });
+
+        remoteFileInput.on('change', function(e) {
+            let text = remoteFileInput.prop('value');
+            files = text.split('\n').map(f => f.trim()).filter(f => f.length > 0);
         });
 
         cancelBrowseServer.on('click', () => shareFileSelector.addClass('hidden'));
@@ -930,8 +954,10 @@ class DashboardView {
                 let task = new window.cvat.classes.Task(description);
                 if (source === 'local') {
                     task.clientFiles = Array.from(files);
-                } else {
+                } else if (source === 'share') {
                     task.serverFiles = Array.from(files);
+                } else if (source === 'remote') {
+                    task.remoteFiles = Array.from(files);
                 }
                 submitCreate.attr('disabled', true);
                 cancelCreate.attr('disabled', true);
