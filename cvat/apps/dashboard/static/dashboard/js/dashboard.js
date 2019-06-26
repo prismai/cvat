@@ -362,9 +362,9 @@ class TaskView {
 
             let jobContainer = $(`
                 <tr class="job-block">
-                    <form id="id-job-form-${job.id}"></form>
-                    <td><input hidden name="id" value="${job.id}" form="id-job-form-${job.id}"></td>
-                    <td><a href="${baseURL}?id=${job.id}">Job #${job.id}</a></td>
+                    <form id="id-job-form-${job.id}" class="hidden"></form>
+                    <td class="hidden"><input hidden name="id" value="${job.id}" form="id-job-form-${job.id}"></td>
+                    <td><a href="${baseURL}?id=${job.id}">Job&nbsp;#${job.id}</a></td>
                     <td>
                         <select class="form-field job-form-field" name="assignee" form="id-job-form-${job.id}">
                             ${availableAssignees}
