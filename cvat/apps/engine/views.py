@@ -412,7 +412,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     def get_permissions(self):
         permissions = [IsAuthenticated]
 
-        if self.action in ["self"]:
+        if self.action in ["self", "availableAssignees", ]:
             pass
         else:
             user = self.request.user
