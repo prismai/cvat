@@ -82,7 +82,7 @@ def collect_annotators_stats(users) -> dict:
             item['stats'].setdefault(date, [])
 
             date_group = list(date_group)
-            date_group.sort(key=lambda x: x['job_id'])
+            date_group.sort(key=lambda x: x['job_id'] if x['job_id'] else 0)
 
             # iterating over saves for every date grouped by job id
             for job_id, job_group in groupby(date_group, lambda x: x['job_id']):
