@@ -1090,7 +1090,7 @@
     };
 
     Task.prototype.delete.implementation = async function () {
-        serverProxy.tasks.deleteTask(this.id);
+        await serverProxy.tasks.deleteTask(this.id);
     };
 
     Task.prototype.frames.get.implementation = async function (frame) {
