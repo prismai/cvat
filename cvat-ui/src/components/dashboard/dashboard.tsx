@@ -10,14 +10,13 @@ import './dashboard.scss';
 
 interface DashboardState {
   tasks: [];
-  tasksCount: number;
 }
 
 class Dashboard extends Component<any, DashboardState> {
   constructor(props: any) {
     super(props);
 
-    this.state = { tasks: [], tasksCount: 0 };
+    this.state = { tasks: [] };
   }
 
   componentDidMount() {
@@ -26,10 +25,20 @@ class Dashboard extends Component<any, DashboardState> {
 
   render() {
     return (
-      <Layout>
-        <DashboardHeader onSearch={ this.getTasks } />
-        <DashboardContent tasks={ this.state.tasks } deleteTask={ this.deleteTask } />
-        <DashboardFooter tasksCount={ this.state.tasksCount } onPageChange={ this.onPageChange } />
+      <Layout className="layout">
+        <DashboardHeader
+          onSearch={ this.getTasks }>
+        </DashboardHeader>
+
+        <DashboardContent
+          tasks={ this.state.tasks }
+          deleteTask={ this.deleteTask }>
+        </DashboardContent>
+
+        <DashboardFooter
+          tasksCount={ (this.state.tasks as any)['count'] }
+          onPageChange={ this.onPageChange }>
+        </DashboardFooter>
       </Layout>
     );
   }
@@ -41,7 +50,7 @@ class Dashboard extends Component<any, DashboardState> {
 
     (window as any).cvat.tasks.get(query ? queryObject : {}).then(
       (tasks: any) => {
-        this.setState({ tasks, tasksCount: tasks.count });
+        this.setState({ tasks });
       },
       (error: any) => {
         console.log(error);
@@ -63,13 +72,7 @@ class Dashboard extends Component<any, DashboardState> {
   private deleteTask = (task: any) => {
     task.delete().then(
       (_deleted: any) => {
-        setTimeout(() => {
-
-          this.getTasks();
-        }, 1000);
-        // const tasks = this.state.tasks.filter((taskToDelete: any) => taskToDelete.id !== task.id) as any;
-
-        // this.setState({ tasks, tasksCount: this.state.tasksCount - 1 });
+        this.getTasks();
       },
       (error: any) => {
         console.log(error);
