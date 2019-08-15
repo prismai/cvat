@@ -12,4 +12,5 @@ BUILTIN_FORMATS = (
     os.path.join(path_prefix, 'coco.py'),
     os.path.join(path_prefix, 'mask.py'),
     os.path.join(path_prefix, 'prism_virtual_camera.py'),
+    os.path.join(path_prefix, 'prism_timestamps.py'),
 )
