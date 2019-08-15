@@ -42,6 +42,7 @@ RUN apt-get update && \
         unrar \
         p7zip-full \
         vim && \
+    pip3 install -U setuptools && \
     add-apt-repository --remove ppa:mc3man/gstffmpeg-keep -y && \
     add-apt-repository --remove ppa:mc3man/xerus-media -y && \
     rm -rf /var/lib/apt/lists/*
@@ -103,6 +104,8 @@ RUN if [ "$WITH_TESTS" = "yes" ]; then \
 COPY cvat/requirements/ /tmp/requirements/
 COPY supervisord.conf mod_wsgi.conf wait-for-it.sh manage.py ${HOME}/
 RUN pip3 install --no-cache-dir -r /tmp/requirements/${DJANGO_CONFIGURATION}.txt
+# pycocotools package is impossible to install with its dependencies by one pip install command
+RUN pip3 install --no-cache-dir pycocotools==2.0.0
 
 # Install git application dependencies
 RUN apt-get update && \
@@ -137,6 +140,7 @@ RUN if [ "$WITH_DEXTR" = "yes" ]; then \
 
 COPY ssh ${HOME}/.ssh
 COPY cvat/ ${HOME}/cvat
+COPY cvat-core/ ${HOME}/cvat-core
 COPY tests ${HOME}/tests
 # Binary option is necessary to correctly apply the patch on Windows platform.
 # https://unix.stackexchange.com/questions/239364/how-to-fix-hunk-1-failed-at-1-different-line-endings-message

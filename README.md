@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/opencv/cvat.svg?branch=develop)](https://travis-ci.org/opencv/cvat)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/840351da141e4eaeac6476fd19ec0a33)](https://app.codacy.com/app/nmanovic/cvat?utm_source=github.com&utm_medium=referral&utm_content=opencv/cvat&utm_campaign=Badge_Grade_Settings)
 [![Gitter chat](https://badges.gitter.im/opencv-cvat/gitter.png)](https://gitter.im/opencv-cvat)
+[![Coverage Status](https://coveralls.io/repos/github/opencv/cvat/badge.svg?branch=)](https://coveralls.io/github/opencv/cvat?branch=develop)
 
 CVAT is free, online, interactive video and image annotation tool for computer vision. It is being used by our team to annotate million of objects with different properties. Many UI and UX decisions are based on feedbacks from professional data annotation team.
 
@@ -25,6 +26,19 @@ CVAT is free, online, interactive video and image annotation tool for computer v
 - [Segmentation mode](https://youtu.be/Fh8oKuSUIPs)
 - [Tutorial for polygons](https://www.youtube.com/watch?v=XTwfXDh4clI)
 - [Semi-automatic segmentation](https://www.youtube.com/watch?v=vnqXZ-Z-VTQ)
+
+## Supported annotation formats
+
+Format selection is possible after clicking on the Upload annotation / Dump annotation button.
+
+| Annotation format                                                                  | Dumper | Loader |
+| ---------------------------------------------------------------------------------- | ------ | ------ |
+| [CVAT XML v1.1 for images](cvat/apps/documentation/xml_format.md#annotation)       | X      | X      |
+| [CVAT XML v1.1 for a video](cvat/apps/documentation/xml_format.md#interpolation)   | X      | X      |
+| [Pascal VOC](http://host.robots.ox.ac.uk/pascal/VOC/)                              | X      | X      |
+| [YOLO](https://pjreddie.com/darknet/yolo/)                                         | X      | X      |
+| [MS COCO Object Detection](http://cocodataset.org/#format-data)                    | X      | X      |
+| PNG mask                                                                           | X      |        |
 
 ## Links
 - [Intel AI blog: New Computer Vision Tool Accelerates Annotation of Digital Images and Video](https://www.intel.ai/introducing-cvat)
