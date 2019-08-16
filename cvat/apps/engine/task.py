@@ -336,11 +336,3 @@ def _create_thread(tid, data):
 
     slogger.glob.info("Founded frames {} for task #{}".format(db_task.size, tid))
     _save_task_to_db(db_task)
-
-
-def find_video_in_dir(dir_):
-    for root, _, files in os.walk(dir_):
-        fullnames = map(lambda f: os.path.join(root, f), files)
-        videos = list(filter(lambda x: _get_mime(x) == 'video', fullnames))
-        if len(videos):
-            return videos[0]

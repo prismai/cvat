@@ -19,18 +19,6 @@ from . import models
 from .data_manager import DataManager
 from .log import slogger
 from . import serializers
-from cvat.apps.engine.services import convert_dump_to_vc_json, convert_dump_to_timestamps
-
-
-def get_format_converter(format_):
-    if format_ is None or format_ == settings.XML_DUMP_FORMAT:
-        return None
-    elif format_ == settings.VIRTUAL_CAMERA_JSON_DUMP_FORMAT:
-        return convert_dump_to_vc_json
-    elif format_ == settings.TIMESTAMPS_DUMP_FORMAT:
-        return convert_dump_to_timestamps
-    else:
-        raise Exception('Converting to {format} does not supporting!'.format(format=format_))
 
 
 class PatchAction(str, Enum):

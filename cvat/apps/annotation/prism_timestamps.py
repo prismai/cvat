@@ -23,12 +23,13 @@ def dump(file_object, annotations):
     """
 
     # local imports because dumpers loader mechanism clean builtins functions include import
-    import os
-    from django.conf import settings
-    from cvat.apps.engine.services import get_pts_times
+    from cvat.apps.engine.services import (
+        get_pts_times,
+        get_source_path,
+    )
 
-    pts_times = get_pts_times(os.path.join(settings.DATA_ROOT, annotations.meta["task"]["id"], '.upload',
-                                           annotations.meta["source"]))
+    pts_times = get_pts_times(video_file=get_source_path(task_id=annotations.meta["task"]["id"],
+                                                         source=annotations.meta["source"]))
     file_object.writelines([str(len(pts_times)).encode() + '\n'.encode()])
     file_object.write('\n'.join([str(pts) for pts in pts_times]).encode())
     file_object.flush()
