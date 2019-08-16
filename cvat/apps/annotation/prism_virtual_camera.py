@@ -1,11 +1,3 @@
-import json
-import os
-
-from django.conf import settings
-
-from cvat.apps.engine.services import get_pts_times
-
-
 format_spec = {
     "name": "Prism Virtual Camera",
     "dumpers": [
@@ -30,6 +22,12 @@ def dump(file_object, annotations):
     :type annotations: cvat.apps.annotation.Annotation.
     """
 
+    # local imports because dumpers loader mechanism clean builtins functions include import
+    import json
+    import os
+    from django.conf import settings
+    from cvat.apps.engine.services import get_pts_times
+
     data = {}
     pts_times = get_pts_times(os.path.join(settings.DATA_ROOT, annotations.meta["task"]["id"], '.upload',
                                            annotations.meta["source"]))
@@ -41,7 +39,7 @@ def dump(file_object, annotations):
             if shape.type == "rectangle":  # dump only boxes
                 boxes.update({
                     shape.frame: {
-                        # ugly conversations according to old xml 2 json conversation
+                        # ugly conversions according to old xml to json code
                         "xtl": round(float("{:.2f}".format(shape.points[0]))),
                         "ytl": round(float("{:.2f}".format(shape.points[1]))),
                         "xbr": round(float("{:.2f}".format(shape.points[2]))),
