@@ -13,4 +13,5 @@ BUILTIN_FORMATS = (
     os.path.join(path_prefix, 'mask.py'),
     os.path.join(path_prefix, 'prism_virtual_camera.py'),
     os.path.join(path_prefix, 'prism_timestamps.py'),
+    os.path.join(path_prefix, 'tfrecord.py'),
 )
