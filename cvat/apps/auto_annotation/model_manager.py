@@ -313,9 +313,9 @@ def run_inference_engine_annotation(data, model_file, weights_file,
     def add_shapes(shapes, target_container):
         for shape in shapes:
             if shape["label"] not in labels_mapping:
-                    continue
+                continue
             db_label = labels_mapping[shape["label"]]
-
+            label_attr_spec = attribute_spec.get(db_label)
             target_container.append({
                 "label_id": db_label,
                 "frame": shape["frame"],
@@ -324,7 +324,7 @@ def run_inference_engine_annotation(data, model_file, weights_file,
                 "z_order": 0,
                 "group": None,
                 "occluded": False,
-                "attributes": process_attributes(shape["attributes"], attribute_spec[db_label]),
+                "attributes": process_attributes(shape["attributes"], label_attr_spec),
             })
 
     result = {
