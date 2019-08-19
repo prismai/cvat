@@ -102,13 +102,26 @@ INSTALLED_APPS = [
     'revproxy',
     'rules',
     'rest_framework',
+    'rest_framework.authtoken',
     'django_filters',
     'drf_yasg',
+    'rest_auth',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'rest_auth.registration'
 ]
+
+SITE_ID = 1
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication'
     ],
     'DEFAULT_VERSIONING_CLASS':
         # Don't try to use URLPathVersioning. It will give you /api/{version}
@@ -127,6 +140,10 @@ REST_FRAMEWORK = {
 
     # Disable default handling of the 'format' query parameter by REST framework
     'URL_FORMAT_OVERRIDE': None,
+}
+
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'cvat.apps.authentication.serializers.RegisterSerializerEx'
 }
 
 if 'yes' == os.environ.get('TF_ANNOTATION', 'no'):
@@ -192,6 +209,8 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend'
 ]
 
+# https://github.com/pennersr/django-allauth
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 # Django-RQ
 # https://github.com/rq/django-rq
@@ -274,6 +293,8 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+CSRF_COOKIE_NAME = "csrftoken"
 
 LOGGING = {
     'version': 1,

@@ -446,9 +446,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     def get_permissions(self):
         permissions = [IsAuthenticated]
 
-        if self.action in ["self", "availableAssignees", ]:
-            pass
-        else:
+        if not self.action in ["self", "availableAssignees", ]:
             user = self.request.user
             if self.action != "retrieve" or int(self.kwargs.get("pk", 0)) != user.id:
                 permissions.append(auth.AdminRolePermission)
