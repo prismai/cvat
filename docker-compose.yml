@@ -49,10 +49,12 @@ services:
         USER: "django"
         DJANGO_CONFIGURATION: "production"
         WITH_TESTS: "no"
-    env_file:
-      - .env
+        TZ: "Etc/UTC"
+        OPENVINO_TOOLKIT: "no"
     environment:
       DJANGO_MODWSGI_EXTRA_ARGS: ""
+    env_file:
+    - .env
     volumes:
       - cvat_data:/home/django/data
       - cvat_keys:/home/django/keys
