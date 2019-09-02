@@ -39,5 +39,4 @@ __pycache__
 .python-version
 
 # Ignore development npm files
-package-lock.json
 node_modules
