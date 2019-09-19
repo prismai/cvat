@@ -792,15 +792,15 @@ class DataManager:
     def __init__(self, data):
         self.data = data
 
-    def merge(self, data, start_frame, overlap):
+    def merge(self, data, start_frame, overlap, stop_frame):
         tags = TagManager(self.data["tags"])
-        tags.merge(data["tags"], start_frame, overlap)
+        tags.merge(data["tags"], start_frame, overlap, stop_frame)
 
         shapes = ShapeManager(self.data["shapes"])
-        shapes.merge(data["shapes"], start_frame, overlap)
+        shapes.merge(data["shapes"], start_frame, overlap, stop_frame)
 
         tracks = TrackManager(self.data["tracks"])
-        tracks.merge(data["tracks"], start_frame, overlap)
+        tracks.merge(data["tracks"], start_frame, overlap, stop_frame)
 
     def to_shapes(self, end_frame):
         shapes = self.data["shapes"]
@@ -835,7 +835,7 @@ class ObjectManager:
         raise NotImplementedError()
 
     @staticmethod
-    def _calc_objects_similarity(obj0, obj1, start_frame, overlap):
+    def _calc_objects_similarity(obj0, obj1, start_frame, overlap, stop_frame):
         raise NotImplementedError()
 
     @staticmethod
@@ -846,7 +846,7 @@ class ObjectManager:
     def _modify_unmached_object(obj, end_frame):
         raise NotImplementedError()
 
-    def merge(self, objects, start_frame, overlap):
+    def merge(self, objects, start_frame, overlap, stop_frame):
         # 1. Split objects on two parts: new and which can be intersected
         # with existing objects.
         new_objects = [obj for obj in objects
@@ -867,7 +867,7 @@ class ObjectManager:
         if not old_objects_by_frame or not int_objects_by_frame:
             for frame in old_objects_by_frame:
                 for old_obj in old_objects_by_frame[frame]:
-                    self._modify_unmached_object(old_obj, start_frame + overlap)
+                    self._modify_unmached_object(old_obj, min(start_frame + overlap, stop_frame))
             self.objects.extend(int_objects)
             return
 
@@ -885,7 +885,7 @@ class ObjectManager:
                 for i, int_obj in enumerate(int_objects):
                     for j, old_obj in enumerate(old_objects):
                         cost_matrix[i][j] = 1 - self._calc_objects_similarity(
-                            int_obj, old_obj, start_frame, overlap)
+                            int_obj, old_obj, start_frame, overlap, stop_frame)
 
                 # 6. Find optimal solution using Hungarian algorithm.
                 row_ind, col_ind = linear_sum_assignment(cost_matrix)
@@ -909,7 +909,7 @@ class ObjectManager:
                 for j in old_objects_indexes:
                     if j != -1:
                         self._modify_unmached_object(old_objects[j],
-                            start_frame + overlap)
+                            min(start_frame + overlap, stop_frame))
             else:
                 # We don't have old objects on the frame. Let's add all new ones.
                 self.objects.extend(int_objects_by_frame[frame])
@@ -920,7 +920,7 @@ class TagManager(ObjectManager):
         return 0.25
 
     @staticmethod
-    def _calc_objects_similarity(obj0, obj1, start_frame, overlap):
+    def _calc_objects_similarity(obj0, obj1, start_frame, overlap, stop_frame):
         # TODO: improve the trivial implementation, compare attributes
         return 1 if obj0["label_id"] == obj1["label_id"] else 0
 
@@ -967,7 +967,7 @@ class ShapeManager(ObjectManager):
         return 0.25
 
     @staticmethod
-    def _calc_objects_similarity(obj0, obj1, start_frame, overlap):
+    def _calc_objects_similarity(obj0, obj1, start_frame, overlap, stop_frame):
         def _calc_polygons_similarity(p0, p1):
             overlap_area = p0.intersection(p1).area
             return overlap_area / (p0.area + p1.area - overlap_area)
@@ -1033,12 +1033,12 @@ class TrackManager(ObjectManager):
         return 0.5
 
     @staticmethod
-    def _calc_objects_similarity(obj0, obj1, start_frame, overlap):
+    def _calc_objects_similarity(obj0, obj1, start_frame, overlap, stop_frame):
         if obj0["label_id"] == obj1["label_id"]:
             # Here start_frame is the start frame of next segment
             # and stop_frame is the stop frame of current segment
             # end_frame == stop_frame + 1
-            end_frame = start_frame + overlap
+            end_frame = min(start_frame + overlap, stop_frame)
             obj0_shapes = TrackManager.get_interpolated_shapes(obj0, start_frame, end_frame)
             obj1_shapes = TrackManager.get_interpolated_shapes(obj1, start_frame, end_frame)
             obj0_shapes_by_frame = {shape["frame"]:shape for shape in obj0_shapes}
@@ -1053,20 +1053,20 @@ class TrackManager(ObjectManager):
                     if shape0["outside"] != shape1["outside"]:
                         error += 1
                     else:
-                        error += 1 - ShapeManager._calc_objects_similarity(shape0, shape1, start_frame, overlap)
+                        error += 1 - ShapeManager._calc_objects_similarity(shape0, shape1, start_frame, overlap, stop_frame)
                     count += 1
                 elif shape0 or shape1:
                     error += 1
                     count += 1
 
-            return 1 - error / count
+            return 1 - error / count if count > 0 else 1
         else:
             return 0
 
     @staticmethod
     def _modify_unmached_object(obj, end_frame):
         shape = obj["shapes"][-1]
-        if not shape["outside"]:
+        if not shape["outside"] and shape["frame"] != end_frame:
             shape = copy.deepcopy(shape)
             shape["frame"] = end_frame
             shape["outside"] = True
@@ -1207,11 +1207,11 @@ class TaskAnnotation:
                 _data = patch_job_data(jid, self.user, job_data, action)
             if _data["version"] > self.data["version"]:
                 self.data["version"] = _data["version"]
-            self._merge_data(_data, jobs[jid]["start"], self.db_task.overlap)
+            self._merge_data(_data, jobs[jid]["start"], self.db_task.overlap, jobs[jid]["stop"])
 
-    def _merge_data(self, data, start_frame, overlap):
+    def _merge_data(self, data, start_frame, overlap, stop_frame):
         data_manager = DataManager(self.data)
-        data_manager.merge(data, start_frame, overlap)
+        data_manager.merge(data, start_frame, overlap, stop_frame)
 
     def put(self, data):
         self._patch_data(data, None)
@@ -1240,7 +1240,7 @@ class TaskAnnotation:
             db_segment = db_job.segment
             start_frame = db_segment.start_frame
             overlap = self.db_task.overlap
-            self._merge_data(annotation.data, start_frame, overlap)
+            self._merge_data(annotation.data, start_frame, overlap, db_segment.stop_frame)
 
     @staticmethod
     def _flip_shape(shape, im_w, im_h):
