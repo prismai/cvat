@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed interpolation on the server near outside frames
 - Fixed dump for case when task name has a slash
 - Fixed auto annotation fail for multijob tasks
+- Fixed overflow issue for small-sized jobs
 
 ### Security
 -
