@@ -27,7 +27,7 @@ def save_interval_stats(request):
 
 @login_required
 def get_operators_stats_view(request):
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not request.user.groups.filter(name='stats').exists():
         users = [request.user, ]
     else:
         users = User.objects.all()
