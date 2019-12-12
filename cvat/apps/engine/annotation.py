@@ -13,6 +13,7 @@ from xml.sax.saxutils import XMLGenerator
 from abc import ABCMeta, abstractmethod
 from PIL import Image
 from shapely import geometry
+import logging
 
 from django.conf import settings
 from django.db import transaction
@@ -1126,6 +1127,7 @@ class TrackManager(ObjectManager):
         shapes = []
         curr_frame = track["shapes"][0]["frame"]
         prev_shape = {}
+        logging.warning('Shapes: {}'.format(track["shapes"]))
         for shape in track["shapes"]:
             if prev_shape:
                 assert shape["frame"] > curr_frame
