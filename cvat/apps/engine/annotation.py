@@ -1127,8 +1127,9 @@ class TrackManager(ObjectManager):
         shapes = []
         curr_frame = track["shapes"][0]["frame"]
         prev_shape = {}
-        logging.warning('Shapes: {}'.format(track["shapes"]))
         for shape in track["shapes"]:
+            if shape["frame"] <= curr_frame:
+                logging.warning('Shapes: {} {}'.format(shape["frame"], curr_frame))
             if prev_shape:
                 assert shape["frame"] > curr_frame
                 for attr in prev_shape["attributes"]:
