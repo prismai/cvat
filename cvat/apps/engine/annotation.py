@@ -1418,6 +1418,8 @@ class TaskAnnotation:
                 counter = 0
                 for track in tracks:
                     track_id = counter
+                    if track_id == 420:
+                        logging.warning(track)
                     counter += 1
                     db_label = db_label_by_id[track["label_id"]]
                     dump_data = OrderedDict([
