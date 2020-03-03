@@ -376,23 +376,23 @@ class AnnotationSaverView {
 
     onAnnotationSaverUpdate(state) {
         if (state.status === 'saveStart') {
-            this._overlay = showOverlay('Annotations are being saved..');
+            // this._overlay = showOverlay('Annotations are being saved..');
             this._saveButton.prop('disabled', true).text('Saving..');
         } else if (state.status === 'saveDone') {
             this._saveButton.text('Successful save');
-            this._overlay.remove();
+            // this._overlay.remove();
         } else if (state.status === 'saveError') {
             this._saveButton.prop('disabled', false).text('Save Work');
             const message = `Couldn't to save the job. Errors occured: ${state.message}. `
                 + 'Please report the problem to support team immediately.';
             showMessage(message);
-            this._overlay.remove();
+            // this._overlay.remove();
         } else if (state.status === 'saveCreated') {
-            this._overlay.setMessage(`${this._overlay.getMessage()} <br /> - Created objects are being saved..`);
+            // this._overlay.setMessage(`${this._overlay.getMessage()} <br /> - Created objects are being saved..`);
         } else if (state.status === 'saveUpdated') {
-            this._overlay.setMessage(`${this._overlay.getMessage()} <br /> - Updated objects are being saved..`);
+            // this._overlay.setMessage(`${this._overlay.getMessage()} <br /> - Updated objects are being saved..`);
         } else if (state.status === 'saveDeleted') {
-            this._overlay.setMessage(`${this._overlay.getMessage()} <br /> - Deleted objects are being saved..`);
+            // this._overlay.setMessage(`${this._overlay.getMessage()} <br /> - Deleted objects are being saved..`);
         } else if (state.status === 'saveUnlocked') {
             this._saveButton.prop('disabled', false).text('Save Work');
         } else {
