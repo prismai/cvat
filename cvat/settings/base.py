@@ -342,7 +342,7 @@ os.makedirs(SHARE_ROOT, exist_ok=True)
 MODELS_ROOT=os.path.join(BASE_DIR, 'models')
 os.makedirs(MODELS_ROOT, exist_ok=True)
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024  # 500 MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None   # this django check disabled
 LOCAL_LOAD_MAX_FILES_COUNT = 500
 LOCAL_LOAD_MAX_FILES_SIZE = 512 * 1024 * 1024  # 512 MB
