@@ -8,7 +8,14 @@ format_spec = {
             "handler": "dump"
         },
     ],
-    "loaders": [],
+    "loaders": [
+        {
+            "display_name": "{name} {format} {version}",
+            "format": "JSON",
+            "version": "1.0",
+            "handler": "load"
+        },
+    ],
 }
 
 
@@ -62,3 +69,27 @@ def dump(file_object, annotations):
 
     file_object.write(json.dumps(data).encode())
     file_object.flush()
+
+
+def load(file_object, annotations):
+    import json
+    data = json.loads(open(file_object.name).read())
+    for track_id, track_data in data.items():
+        shapes = []
+        for frame, box in track_data['boxes'].items():
+            shape = annotations.TrackedShape(
+                type="rectangle",
+                points=[box['xtl'], box['ytl'], box['xbr'], box['ybr']],
+                occluded=box['occluded'],
+                attributes=[],
+                outside=box['outside'],
+                frame=frame,
+                keyframe=1,
+            )
+            shapes.append(shape)
+        track = annotations.Track(
+            label=track_data['label'],
+            group=track_id,
+            shapes=shapes,
+        )
+        annotations.add_track(track)
